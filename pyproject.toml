@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sd-lock-utility"
+dynamic = ["version"]
+description = "CLI utility tool for SD Connect encrypted object storage."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "CSC Developers" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Environment :: Console",
+    "Topic :: Communications :: File Sharing",
+]
+dependencies = [
+    "aiohttp==3.8.6",
+    "click==8.1.7",
+    "crypt4gh==1.6",
+]
+
+[project.optional-dependencies]
+test = [
+    "black==23.9.1",
+    "coverage==7.3.2",
+    "flake8-docstrings==1.7.0",
+    "flake8==6.1.0",
+    "mypy==1.6.0",
+    "pytest-cov==4.1.0",
+    "pytest-xdist==3.3.1",
+    "pytest==7.4.2",
+    "tox==4.11.3",
+]
+
+dev = [
+    "pre-commit==3.5.0",
+    "pyspelling==2.9",
+    "ruff==0.0.292",
+]
+
+[project.scripts]
+sd-lock = "sd_lock_utility.cli:lock"
+sd-unlock = "sd_lock_utility.cli:unlock"
+sd-pubkey = "sd_lock_utility.cli:pubkey"
+
+[project.urls]
+Source = "https://github.com/CSCfi/sd-lock-util"
+Documentation = "https://github.com/CSCfi/sd-lock-util"
+
+[tool.hatch.version]
+path = "sd_lock_utility/__init__.py"
+
+[tool.black]
+line-length = 90
+target-version = ['py310']
+
+[tool.isort]
+atomic = true
+profile = "black"
+line_length = 90
+py_version=310
+
+[tool.ruff]
+line-length = 90
+target-version = "py310"
+
+# https://beta.ruff.rs/docs/rules/
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    # "ANN",   # flake8-annotations
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "D",   # pydocstyle
+#    "UP",  # pyupgrade
+    "S",   # Bandit
+]
+
+ignore = [
+    "ANN101",  # Missing type annotation for `self` in method
+    "E501",    # line too long, handled by black
+    "B904",    # do not perform function calls in argument defaults
+    "PLR2004", # magic value used in comparison
+    "S113",    # Probable use of requests call without timeout
+    "D203",    # one-blank-line-before-class
+    "D213",    # multi-line-summary-second-line
+]
+
+[tool.ruff.mccabe]
+max-complexity = 15

@@ -13,6 +13,10 @@ class NoProject(Exception):
     """No project was provided."""
 
 
+class NoContainer(Exception):
+    """No container was provided."""
+
+
 class NoKey(Exception):
     """Could not fetch the key."""
 

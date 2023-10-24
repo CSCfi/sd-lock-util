@@ -64,13 +64,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
-docs/source/swift_browser_ui.ui
-docs/source/swift_browser_ui.sharing
-docs/source/swift_browser_ui.request
-docs/source/swift_browser_ui.upload
-
 # PyBuilder
 target/
 
@@ -121,30 +114,15 @@ src/server.py
 
 # environment variable files
 setenvs*
-swift_browser_ui_frontend/src/common/swift_sharing_request_bind.js
-swift_browser_ui_frontend/src/common/swift_x_account_sharing_bind.js
-
-# Tests
-tests/ui_front/swift-browser-ui
 
 # ignore pyspelling
 dictionary.dic
-
-swift_browser_ui_frontend/cypress
 
 # Node files
 **/node_modules/
 **/.node_modules/
 
-# wasm build files
-swift_browser_ui_frontend/wasm/src/libupload.js
-swift_browser_ui_frontend/wasm/src/libupload.wasm
-swift_browser_ui_frontend/public/libupload.js
-swift_browser_ui_frontend/public/libupload.wasm
-
 private
 static
 
-devproxy/swiftui-proxy.*
-Procfile.*
 *.pem
