@@ -188,6 +188,7 @@ def pubkey(
 @click.option(
     "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
 )
+@click.option("--path", default="", help="Path where the downloaded files are.")
 @click.option(
     "--no-content-download",
     is_flag=True,
@@ -208,7 +209,6 @@ def pubkey(
 )
 @click.option("--debug", is_flag=True, help="Print debug information.")
 @click.option("--progress", is_flag=True, help="Display file progress information.")
-@click.argument("path")
 def unlock(
     path: str,
     container: str,
@@ -232,9 +232,6 @@ def unlock(
         LOGGER.setLevel(logging.INFO)
     else:
         LOGGER.setLevel(logging.ERROR)
-
-    if not os.path.exists(path):
-        logging.error("Could not access the provided path.")
 
     opts: sd_lock_utility.types.SDUnlockOptions = {
         "path": path,

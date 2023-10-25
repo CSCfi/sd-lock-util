@@ -2,8 +2,19 @@
 
 
 import typing
+import os
 
 import aiohttp
+
+
+# SD lock/unlock utility constants
+
+# MAX_SIMULTANEOUS_UPLOADS can be used to set a suitable maximum amount of
+# upload tasks running at once. The default 4 should be fine for most
+# situations.
+MAX_SIMULTANEOUS_UPLOADS: int = int(
+    os.environ.get("SD_LOCK_UTIL_MAX_SIMULTANEOUS_UPLOADS", 4)
+)
 
 
 class SDAPISession(typing.TypedDict):
@@ -68,7 +79,15 @@ class SDUtilFile(typing.TypedDict):
 
     # Note that the filename and path always point to the plain-text file,
     # so the encrypted file identifier needs to be added separately.
-    filename: str
-    prefix: str
     path: str
     session_key: bytes
+
+
+class OpenstackObjectListingItem(typing.TypedDict):
+    """Type definitions for Openstack Object Storage API file item."""
+
+    hash: str
+    last_modified: str
+    bytes: int
+    name: str
+    content_type: str

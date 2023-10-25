@@ -107,7 +107,7 @@ Options:
 
 ```
 ➜ sd-unlock --help
-Usage: sd-unlock [OPTIONS] PATH
+Usage: sd-unlock [OPTIONS]
 
   Unlock a file or folder.
 
@@ -119,6 +119,7 @@ Options:
   --os-auth-url TEXT         Openstack authentication backend URL.
   --sd-connect-address TEXT  Address used when connecting to SD Connect.
   --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --path TEXT                Path where the downloaded files are.
   --no-content-download      Download headers and decrypt in place. User will
                              provide the files to decrypt.
   --no-preserve-original     Remove original files after decrypting.

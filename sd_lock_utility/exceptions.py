@@ -17,6 +17,14 @@ class NoContainer(Exception):
     """No container was provided."""
 
 
+class ContainerCreationFailed(Exception):
+    """Could not access or create the required container for upload."""
+
+
+class NoContainerAccess(Exception):
+    """Could not access the required container."""
+
+
 class NoKey(Exception):
     """Could not fetch the key."""
 

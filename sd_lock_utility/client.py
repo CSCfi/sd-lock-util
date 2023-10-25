@@ -4,7 +4,6 @@
 import os
 import base64
 import typing
-import time
 import logging
 
 import aiohttp
@@ -171,59 +170,6 @@ async def signed_fetch(
         print("Invalid URL")
 
     return None
-
-
-async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> str:
-    """Fetch a valid token for accessing Openstack."""
-    if (
-        not session["openstack_token"]
-        or session["openstack_token_valid_until"] < time.time()
-    ):
-        LOGGER.debug("Token does not exist or is expired, refreshing...")
-
-        # The token will be valid for 8 hours (28800 seconds)
-        session["openstack_token_valid_until"] = time.time() + 28800
-        async with session["client"].post(
-            f"{session['openstack_auth_url']}/auth/tokens",
-            json={
-                "auth": {
-                    "identity": {
-                        "methods": [
-                            "password",
-                        ],
-                        "password": {
-                            "user": {
-                                "name": session["openstack_username"],
-                                "domain": {
-                                    "name": session["openstack_user_domain"],
-                                },
-                                "password": session["openstack_password"],
-                            },
-                        },
-                    },
-                    "scope": {
-                        "project": {
-                            "id": session["openstack_project_id"],
-                        },
-                    },
-                },
-            },
-        ) as resp:
-            session["openstack_token"] = resp.headers["X-Subject-Token"]
-
-            # Cache the endpoint information from the token
-            token_meta = await resp.json()
-            session["openstack_object_storage_endpoint"] = [
-                list(filter(lambda i: i["interface"] == "public", i["endpoints"]))[0]
-                for i in filter(
-                    lambda i: i["type"] == "object-store", token_meta["token"]["catalog"]
-                )
-            ][0]
-            LOGGER.debug(
-                f"Using {session['openstack_object_storage_endpoint']} as the object storage endpoint."
-            )
-
-    return session["openstack_token"]
 
 
 async def whitelist_key(session: sd_lock_utility.types.SDAPISession, key: bytes) -> None:

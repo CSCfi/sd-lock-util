@@ -4,6 +4,7 @@
 import os
 import base64
 import logging
+import secrets
 
 import crypt4gh.header
 import nacl.bindings
@@ -11,6 +12,7 @@ import nacl.public
 
 import sd_lock_utility.client
 import sd_lock_utility.types
+import sd_lock_utility.os_client
 
 
 LOGGER = logging.getLogger("sd-lock-util")
@@ -27,10 +29,6 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
         os_auth_url=opts["openstack_auth_url"],
         no_check_certificate=opts["no_check_certificate"],
     )
-
-    if not opts["no_content_upload"]:
-        LOGGER.error("Direct upload is not yet supported.")
-        return await sd_lock_utility.client.kill_session(session, 3)
 
     if os.path.isfile(opts["path"]):
         LOGGER.error("Operations on single files not yet supported.")
@@ -58,8 +56,6 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
             header_bytes: bytes = crypt4gh.header.serialize(header_packets)
 
             to_add: sd_lock_utility.types.SDUtilFile = {
-                "filename": file,
-                "prefix": root,
                 "path": root + "/" + file,
                 "session_key": session_key,
             }
@@ -67,7 +63,7 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
             LOGGER.debug(f"Adding file {to_add} for encryption.")
 
             # Upload the file header
-            LOGGER.info(f"Uploading header for ${to_add['path']}")
+            LOGGER.debug(f"Uploading header for ${to_add['path']}")
             await sd_lock_utility.client.push_header(
                 session,
                 header_bytes,
@@ -76,33 +72,50 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
 
             enfiles.append(to_add)
 
-    # If encrypting in place
-    if opts["no_content_upload"]:
-        for enfile in enfiles:
-            size: int = os.stat(enfile["path"]).st_size
-            done: int = 0
-            with open(enfile["path"], "rb") as f:
-                with open(f"{enfile['path']}.c4gh", "wb") as out_f:
-                    while chunk := f.read(65536):
-                        if opts["progress"]:
-                            print(f"{enfile['path']}        {done}/{size}", end="\r")
+    # Pre-fetch the token to make the object storage API endpoint defined
+    if not opts["no_content_upload"]:
+        LOGGER.debug("Authenticating with Openstack.")
+        await sd_lock_utility.os_client.openstack_get_token(session)
 
-                        nonce = os.urandom(12)
-                        segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
-                            chunk,
-                            None,
-                            nonce,
-                            enfile["session_key"],
-                        )
-                        out_f.write(nonce)
-                        out_f.write(segment)
-                        done += len(chunk)
-            LOGGER.info(f"Encrypted {enfile['path']}")
+    for enfile in enfiles:
+        size: int = os.stat(enfile["path"]).st_size
+        # Only encrypt if requested
+        if opts["no_content_upload"]:
+            for enfile in enfiles:
+                done: int = 0
+                with open(enfile["path"], "rb") as f:
+                    with open(f"{enfile['path']}.c4gh", "wb") as out_f:
+                        while chunk := f.read(65536):
+                            if opts["progress"]:
+                                print(f"{enfile['path']}        {done}/{size}", end="\r")
 
-    # If uploading the files
-    else:
-        # TODO: implement direct download
-        return await sd_lock_utility.client.kill_session(session, 3)
+                            nonce = os.urandom(12)
+                            segment = (
+                                nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
+                                    chunk,
+                                    None,
+                                    nonce,
+                                    enfile["session_key"],
+                                )
+                            )
+                            out_f.write(nonce)
+                            out_f.write(segment)
+                            done += len(chunk)
+                LOGGER.info(f"Encrypted {enfile['path']}")
+        # Otherwise upload the contents to object storage
+        else:
+            # 5366415360 is the largest size that can fit to 5GiB after encryption overhead
+            # Start counting segment numbers from 1 for backwards compatibility
+            segments_uuid: str = secrets.token_urlsafe(32)
+            for object_segment in range(0, -(-size // 5366415360)):
+                await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
+                    opts, session, enfile, object_segment, segments_uuid
+                )
+
+            await sd_lock_utility.os_client.openstack_create_manifest(
+                session, enfile, segments_uuid
+            )
+            LOGGER.info(f"Encrypted and uploaded {enfile['path']}")
 
     # Remove original files if required
     if opts["no_preserve_original"]:

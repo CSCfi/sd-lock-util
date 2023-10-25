@@ -4,6 +4,7 @@
 import os
 import io
 import logging
+import pathlib
 
 import nacl.bindings
 import nacl.public
@@ -13,6 +14,7 @@ import crypt4gh.header
 import crypt4gh.lib
 
 import sd_lock_utility.client
+import sd_lock_utility.os_client
 import sd_lock_utility.types
 
 
@@ -40,17 +42,31 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
     LOGGER.info("Whitelisting public key temporarily for decryption...")
     await sd_lock_utility.client.whitelist_key(session, privkey.public_key.encode())  # type: ignore
 
+    # Pre-fetch the token to make the object storage API endpoint defined
     if not opts["no_content_download"]:
-        LOGGER.error("Direct download is not yet supported.")
-        return await sd_lock_utility.client.kill_session(session, 3)
+        LOGGER.debug("Authenticating with Openstack.")
+        await sd_lock_utility.os_client.openstack_get_token(session)
 
     # Get all files in the path
     LOGGER.info("Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
-    for root, _, files in os.walk(opts["path"]):
+
+    object_storage_files: list[tuple[str, str, list[str]]] = []
+    if not opts["no_content_download"]:
+        LOGGER.info("Fetching file listing from object storage...")
+        object_storage_files = await sd_lock_utility.os_client.get_container_objects(
+            session
+        )
+
+    for root, _, files in (
+        os.walk(opts["path"]) if opts["no_content_download"] else object_storage_files
+    ):
         for file in files:
             # Fetch and parse the file header
-            path: str = root + "/" + file
+            if root:
+                path: str = root + "/" + file
+            else:
+                path = file
             if ".c4gh" not in file:
                 LOGGER.info(f"Skipping file {path} due to not being an encrypted file.")
                 continue
@@ -69,9 +85,14 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
 
             LOGGER.debug(f"Session keys for {path}: {session_keys}")
 
+            # We'll have to create the prefix separately even though os.walkdir
+            # gives it for us, due to openstack return missing precalculated
+            # prefixes
+            # Ensure necessary directories exist
+            prefix: str = path.replace(path.split("/")[-1], "").rstrip("/")
+            pathlib.Path(prefix).mkdir(parents=True, exist_ok=True)
+
             to_add: sd_lock_utility.types.SDUtilFile = {
-                "filename": file.replace(".c4gh", ""),
-                "prefix": root,
                 "path": path.replace(".c4gh", ""),
                 "session_key": session_keys[0],
             }
@@ -85,8 +106,8 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
     LOGGER.info("Removing temporary download key from whitelist.")
     await sd_lock_utility.client.unlist_key(session)
 
-    if opts["no_content_download"]:
-        for enfile in enfiles:
+    for enfile in enfiles:
+        if opts["no_content_download"]:
             size: int = os.stat(enfile["path"] + ".c4gh").st_size
             done: int = 0
             with open(enfile["path"] + ".c4gh", "rb") as f:
@@ -111,13 +132,17 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
                             LOGGER.error(f"Could not decrypt {enfile['path']}")
                             break
                         done += len(chunk)
-            LOGGER.info(f"Decrypted {enfile['path']}")
-    else:
-        # TODO: implement direct download
-        return await sd_lock_utility.client.kill_session(session, 3)
+        else:
+            try:
+                await sd_lock_utility.os_client.openstack_download_decrypted_object(
+                    opts, session, enfile
+                )
+            except nacl.exceptions.CryptoError:
+                LOGGER.error(f"Could not decrypt {enfile['path']}")
+        LOGGER.info(f"Decrypted {enfile['path']}")
 
     # Remove originals if required
-    if opts["no_preserve_original"]:
+    if opts["no_preserve_original"] and not opts["no_content_download"]:
         for enfile in enfiles:
             os.remove(enfile["path"] + ".c4gh")
 
