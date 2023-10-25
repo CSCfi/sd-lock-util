@@ -12,9 +12,16 @@ class SDAPISession(typing.TypedDict):
     client: aiohttp.ClientSession
     token: bytes
     address: str
-    project_id: str
-    project_name: str
+    openstack_project_id: str
+    openstack_project_name: str
     openstack_auth_url: str
+    openstack_password: str
+    openstack_user_domain: str
+    openstack_username: str
+    openstack_region_name: str
+    openstack_token: str
+    openstack_object_storage_endpoint: str
+    openstack_token_valid_until: float
     container: str
     no_check_certificate: bool
 
