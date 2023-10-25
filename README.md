@@ -40,6 +40,42 @@ pip install -r requirements.txt
 pip install .[]
 ```
 
+#### Configuration
+The commands need a few parameters to run. These are the address of the
+SD connect runner API, an API token for accessing said API, the container/bucket
+name of the files, and an Openstack project name available
+(same as MyCSC project ID).
+
+The parameters can be configured either through command-line arguments (as
+displayed below) or with the following environment variables:
+
+* `SD_CONNECT_API_TOKEN` – the token for SD Connect API
+* `SD_CONNECT_API_ADDRESS` – the address for the SD Connect lock/unlock API
+* `OS_PROJECT_NAME` – the name for the Openstack project / id of the MyCSC project
+* `UPLOAD_CONTAINER` – the container / bucket used during upload / download
+
+Additionally, if the integrated upload / download feature is to be used,
+Openstack access credentials need to be available in order to access Allas.
+These can be added in a simple way by sourcing an Openstack environment
+configuration (`.rc`) file.
+
+#### Examples
+Encrypting a folder without uploading files (with the configured environment)
+```
+➜ sd-lock --no-content-upload test-folder
+```
+
+Decrypting a folder without downloading the files (the files need to be
+downloaded separately first, command is used in a confiugred environment)
+```
+➜ sd-unlock --no-content-download test-folder
+```
+
+Fetching the project public key from SD Connect.
+```
+➜ sd-pubkey > "$(OS_PROJECT_NAME).c4gh.pub"
+```
+
 #### Commands
 After installing the Python package, following commands will be available:
 ```
@@ -49,18 +85,24 @@ Usage: sd-lock [OPTIONS] PATH
   Lock a file or folder.
 
 Options:
-  --container TEXT             Container where the files will be uploaded.
-  --project-id TEXT            Project id of the project used in uploading.
-  --project-name TEXT          Project name of the project used in uploading.
-  --owner TEXT                 Owner of the shared container.
-  --os-auth-url TEXT           Openstack authentication backend URL.
-  --sd-connect-address TEXT    Address used when connecting to SD Connect.
-  --sd-api-token TEXT          Token to use for authentication with SD
-                               Connect.
-  --no-content-upload TEXT     Upload headers and encrypt in place. User will
-                               provide the upload script afterwards.
-  --no-preserve-original TEXT  Remove original files after encrypting.
-  --help                       Show this message and exit.
+  --container TEXT           Container where the files will be uploaded.
+  --project-id TEXT          Project id of the project used in uploading.
+  --project-name TEXT        Project name of the project used in uploading.
+  --owner TEXT               Owner of the shared container.
+  --os-auth-url TEXT         Openstack authentication backend URL.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-content-upload        Upload headers and encrypt in place. User will
+                             provide the upload script afterwards.
+  --no-preserve-original     Remove original files after encrypting.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (develompent use only)
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (develompent use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --progress                 Display file progress information.
+  --help                     Show this message and exit.
 ```
 
 ```
@@ -70,19 +112,40 @@ Usage: sd-unlock [OPTIONS] PATH
   Unlock a file or folder.
 
 Options:
-  --container TEXT             Container where the files were downloaded from.
-  --project-id TEXT            Project id of the project used in downloading.
-  --project-name TEXT          Project name of the project used in
-                               downloading.
-  --owner TEXT                 Owner of the shared container.
-  --os-auth-url TEXT           Openstack authentication backend URL.
-  --sd-connect-address TEXT    Address used when connecting to SD Connect.
-  --sd-api-token TEXT          Token to use for authentication with SD
-                               Connect.
-  --no-content-download TEXT   Download headers and decrypt in place. User
-                               will provide the files to decrypt.
-  --no-preserve-original TEXT  Remove original files after decrypting.
-  --help                       Show this message and exit.
+  --container TEXT           Container where the files were downloaded from.
+  --project-id TEXT          Project id of the project used in downloading.
+  --project-name TEXT        Project name of the project used in downloading.
+  --owner TEXT               Owner of the shared container.
+  --os-auth-url TEXT         Openstack authentication backend URL.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-content-download      Download headers and decrypt in place. User will
+                             provide the files to decrypt.
+  --no-preserve-original     Remove original files after decrypting.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (develompent use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --progress                 Display file progress information.
+  --help                     Show this message and exit.
+```
+
+```
+Usage: sd-pubkey [OPTIONS]
+
+  Fetch and display the project public key.
+
+Options:
+  --project-id TEXT          Project id of the project used in uploading.
+  --project-name TEXT        Project name of the project used in uploading.
+  --owner TEXT               Owner of the shared container.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (develompent use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
 ```
 
 ### License
