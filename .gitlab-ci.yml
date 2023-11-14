@@ -28,10 +28,8 @@ python-test:
 
   image: $BUILD_IMAGE
   before_script:
-    - pnpm --prefix swift_browser_ui_frontend install --prod
     - pip install .[test]
   script:
-    - pnpm --prefix swift_browser_ui_frontend docker-build
     - tox -e pytest
     - coverage run -m pytest tests/
     - coverage report --precision=1
