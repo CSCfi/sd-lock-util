@@ -1,18 +1,17 @@
 """CLI for locking and unlocking files with SD Connect upload API."""
 
 
-import os
 import asyncio
-import sys
 import logging
+import os
+import sys
 
 import click
 
-import sd_lock_utility.lock
-import sd_lock_utility.unlock
 import sd_lock_utility.exceptions
+import sd_lock_utility.lock
 import sd_lock_utility.types
-
+import sd_lock_utility.unlock
 
 logging.basicConfig(level=logging.ERROR)
 LOGGER = logging.getLogger("sd-lock-util")

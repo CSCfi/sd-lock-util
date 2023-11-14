@@ -1,18 +1,16 @@
 """SD Connect vault proxy API client."""
 
 
-import os
 import base64
-import typing
 import logging
+import os
+import typing
 
 import aiohttp
-
 import swift_browser_ui.common.signature
 
 import sd_lock_utility.exceptions
 import sd_lock_utility.types
-
 
 LOGGER = logging.getLogger("sd-lock-util")
 
@@ -111,7 +109,6 @@ async def open_session(
 
 async def kill_session(session: sd_lock_utility.types.SDAPISession, ret: int) -> int:
     """Gracefully close the session."""
-
     LOGGER.debug("Gracefully closing the SD Connect client session.")
 
     await session["client"].close()

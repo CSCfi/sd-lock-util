@@ -1,20 +1,18 @@
 """Functions for accessing openstack."""
 
 
-import logging
-import time
-import os
-import typing
 import asyncio
+import logging
+import os
+import time
+import typing
 
 import aiofiles
-
 import nacl.bindings
 import nacl.exceptions
 
-import sd_lock_utility.types
 import sd_lock_utility.exceptions
-
+import sd_lock_utility.types
 
 LOGGER = logging.getLogger("sd-lock-util")
 

@@ -1,11 +1,10 @@
 """Common types for SD folder lock/unlock tool."""
 
 
-import typing
 import os
+import typing
 
 import aiohttp
-
 
 # SD lock/unlock utility constants
 
