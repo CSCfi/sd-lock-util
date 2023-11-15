@@ -230,11 +230,11 @@ async def openstack_download_decrypted_object(
                 except asyncio.IncompleteReadError as incomplete:
                     chunk = incomplete.partial
 
-                nonce = chunk[:12]
-                content = chunk[12:]
-
                 if not chunk:
                     return
+
+                nonce = chunk[:12]
+                content = chunk[12:]
 
                 await out_f.write(
                     nacl.bindings.crypto_aead_chacha20poly1305_ietf_decrypt(

@@ -2,17 +2,37 @@
 
 
 import base64
+import hmac
 import logging
 import os
+import time
 import typing
 
 import aiohttp
-import swift_browser_ui.common.signature
 
 import sd_lock_utility.exceptions
 import sd_lock_utility.types
 
 LOGGER = logging.getLogger("sd-lock-util")
+
+
+def _sign_api_request(
+    path: str, valid_for: int = 3600, key: bytes = b""
+) -> sd_lock_utility.types.SDAPISignature:
+    """Handle authentication with a signature."""
+    valid_until = int(time.time() + valid_for)
+    to_sign = (str(valid_until) + path).encode("utf-8")
+
+    digest = hmac.new(
+        key=(key if key else os.environ.get("SWIFT_UI_API_KEY", "").encode("utf-8")),
+        msg=to_sign,
+        digestmod="sha256",
+    ).hexdigest()
+
+    return {
+        "valid": valid_until,
+        "signature": digest,
+    }
 
 
 async def open_session(
@@ -115,23 +135,6 @@ async def kill_session(session: sd_lock_utility.types.SDAPISession, ret: int) ->
     return ret
 
 
-async def get_signature(
-    session: sd_lock_utility.types.SDAPISession,
-    path: str,
-    duration: int = 3600,
-) -> sd_lock_utility.types.SDAPISignature:
-    """Sign an API request."""
-    ret: sd_lock_utility.types.SDAPISignature = (
-        swift_browser_ui.common.signature.sign_api_request(
-            path,
-            duration,
-            session["token"],
-        )
-    )
-
-    return ret
-
-
 async def signed_fetch(
     session: sd_lock_utility.types.SDAPISession,
     path: str,
@@ -144,8 +147,10 @@ async def signed_fetch(
 ) -> str | None:
     """Wrap fetching with integrated error handling."""
     url = session["address"] + path
-    signature: sd_lock_utility.types.SDAPISignature = await get_signature(
-        session, path, duration=duration
+    signature: sd_lock_utility.types.SDAPISignature = _sign_api_request(
+        path,
+        duration,
+        session["token"],
     )
 
     if params is not None:
