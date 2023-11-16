@@ -24,7 +24,7 @@ def _sign_api_request(
     to_sign = (str(valid_until) + path).encode("utf-8")
 
     digest = hmac.new(
-        key=(key if key else os.environ.get("SWIFT_UI_API_KEY", "").encode("utf-8")),
+        key=key,
         msg=to_sign,
         digestmod="sha256",
     ).hexdigest()
