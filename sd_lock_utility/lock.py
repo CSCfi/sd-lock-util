@@ -1,9 +1,9 @@
 """Folder lock operation."""
 
 
-import os
 import base64
 import logging
+import os
 import secrets
 
 import crypt4gh.header
@@ -11,9 +11,8 @@ import nacl.bindings
 import nacl.public
 
 import sd_lock_utility.client
-import sd_lock_utility.types
 import sd_lock_utility.os_client
-
+import sd_lock_utility.types
 
 LOGGER = logging.getLogger("sd-lock-util")
 

@@ -1,0 +1,36 @@
+stages:
+  - verify
+  - test
+
+variables:
+  BUILD_IMAGE: $ARTIFACTORY_SERVER/sds/swift-browser-ui-ci
+
+python-lint:
+  stage: verify
+  tags:
+    - docker-exec
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+  image: $BUILD_IMAGE
+  before_script:
+    - pip install pre-commit tox mypy .[dev]
+  script:
+    - pre-commit run --all-files -c .pre-commit-config.yaml --show-diff-on-failure --color never
+    - tox -e bandit
+
+python-test:
+  stage: test
+  tags:
+    - docker-exec
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+  image: $BUILD_IMAGE
+  before_script:
+    - pip install .[test]
+  script:
+    - tox -e pytest
+    - coverage run -m pytest tests/
+    - coverage report --precision=1
+  coverage: '/TOTAL.*\s+(\d+\%)/'
