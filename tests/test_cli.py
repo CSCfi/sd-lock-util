@@ -109,7 +109,7 @@ class TestCliFunctions(unittest.TestCase):
         self.mock_lock.assert_called_once_with(
             {
                 "path": "",
-                "container": "",
+                "container": "placeholder",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",
                 "owner": "test-owner",
