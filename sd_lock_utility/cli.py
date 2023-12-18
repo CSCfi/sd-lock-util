@@ -151,7 +151,7 @@ def pubkey(
         LOGGER.setLevel(logging.ERROR)
 
     opts: sd_lock_utility.types.SDCommandBaseOptions = {
-        "container": "",
+        "container": "placeholder",
         "project_id": project_id,
         "project_name": project_name,
         "owner": owner,
