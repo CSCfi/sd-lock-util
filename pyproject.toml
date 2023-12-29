@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Communications :: File Sharing",
 ]
 dependencies = [
-    "aiohttp==3.8.6",
+    "aiohttp==3.9.1",
     "click==8.1.7",
     "crypt4gh==1.6",
     "aiofiles==23.2.1",
@@ -31,21 +31,21 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "black==23.11.0",
-    "coverage==7.3.2",
+    "black==23.12.0",
+    "coverage==7.3.3",
     "flake8-docstrings==1.7.0",
     "flake8==6.1.0",
-    "mypy==1.7.0",
+    "mypy==1.7.1",
     "pytest-cov==4.1.0",
-    "pytest-xdist==3.4.0",
+    "pytest-xdist==3.5.0",
     "pytest==7.4.3",
-    "tox==4.11.3",
+    "tox==4.11.4",
 ]
 
 dev = [
-    "pre-commit==3.5.0",
+    "pre-commit==3.6.0",
     "pyspelling==2.9",
-    "ruff==0.1.5",
+    "ruff==0.1.8",
     "types-aiofiles==23.2.0.0",
 ]
 
