@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Communications :: File Sharing",
 ]
 dependencies = [
-    "aiohttp==3.9.1",
+    "aiohttp==3.9.2",
     "click==8.1.7",
     "crypt4gh==1.6",
     "aiofiles==23.2.1",
