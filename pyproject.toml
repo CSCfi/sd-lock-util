@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Communications :: File Sharing",
 ]
 dependencies = [
-    "aiohttp==3.9.2",
+    "aiohttp==3.9.3",
     "click==8.1.7",
     "crypt4gh==1.6",
     "aiofiles==23.2.1",
@@ -45,7 +45,7 @@ test = [
 dev = [
     "pre-commit==3.6.0",
     "pyspelling==2.10",
-    "ruff==0.1.15",
+    "ruff==0.2.0",
     "types-aiofiles==23.2.0.20240106",
 ]
 
