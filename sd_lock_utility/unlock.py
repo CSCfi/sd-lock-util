@@ -31,10 +31,6 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
         no_check_certificate=opts["no_check_certificate"],
     )
 
-    if os.path.isfile(opts["path"]):
-        LOGGER.error("Operations on single files not yet supported.")
-        return await sd_lock_utility.client.kill_session(session, 2)
-
     # Generate an ephemeral keypair
     privkey = nacl.public.PrivateKey.generate()
     LOGGER.info("Whitelisting public key temporarily for decryption...")
@@ -49,16 +45,23 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
     LOGGER.info("Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
 
-    object_storage_files: list[tuple[str, str, list[str]]] = []
-    if not opts["no_content_download"]:
+    files_to_decrypt: list[tuple[str, list[str], list[str]]] = []
+    if not opts["no_content_download"] and not opts["path"]:
         LOGGER.info("Fetching file listing from object storage...")
-        object_storage_files = await sd_lock_utility.os_client.get_container_objects(
-            session
+        files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(
+            session,
+            opts["prefix"],
         )
-
-    for root, _, files in (
-        os.walk(opts["path"]) if opts["no_content_download"] else object_storage_files
+    elif os.path.isfile(opts["path"]) or (
+        not opts["no_content_download"] and opts["path"]
     ):
+        LOGGER.debug("Creating a dummylist with the single provided file.")
+        files_to_decrypt = [("", [], [opts["path"]])]
+    else:
+        LOGGER.debug("Walking through the path to get a list of files.")
+        files_to_decrypt = list(os.walk(opts["path"]))
+
+    for root, _, files in files_to_decrypt:
         for file in files:
             # Fetch and parse the file header
             if root:
@@ -68,6 +71,11 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
             if ".c4gh" not in file:
                 LOGGER.info(f"Skipping file {path} due to not being an encrypted file.")
                 continue
+            # If not downloading content, and got a prefix, use prefix when
+            # fetching the header
+            if opts["prefix"] and opts["no_content_download"]:
+                path = opts["prefix"] + path
+
             LOGGER.debug(f"Fetching a re-encrypted header for {path}.")
             header = await sd_lock_utility.client.get_header(session, path)
 
@@ -88,10 +96,14 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
             # prefixes
             # Ensure necessary directories exist
             prefix: str = path.replace(path.split("/")[-1], "").rstrip("/")
+            # Don't create the preceding folders if using a pseudofolder
+            if opts["prefix"]:
+                prefix = prefix.replace(opts["prefix"].rstrip("/"), "")
             pathlib.Path(prefix).mkdir(parents=True, exist_ok=True)
 
             to_add: sd_lock_utility.types.SDUtilFile = {
                 "path": path.replace(".c4gh", ""),
+                "localpath": path.replace(".c4gh", "").replace(opts["prefix"], ""),
                 "session_key": session_keys[0],
             }
 
@@ -106,13 +118,13 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
 
     for enfile in enfiles:
         if opts["no_content_download"]:
-            size: int = os.stat(enfile["path"] + ".c4gh").st_size
+            size: int = os.stat(enfile["localpath"] + ".c4gh").st_size
             done: int = 0
-            with open(enfile["path"] + ".c4gh", "rb") as f:
-                with open(enfile["path"], "wb") as out_f:
+            with open(enfile["localpath"] + ".c4gh", "rb") as f:
+                with open(enfile["localpath"], "wb") as out_f:
                     while chunk := f.read(65564):
                         if opts["progress"]:
-                            print(f"{enfile['path']}        {done}/{size}", end="\r")
+                            print(f"{enfile['localpath']}        {done}/{size}", end="\r")
 
                         nonce = chunk[:12]
                         content = chunk[12:]
@@ -127,7 +139,7 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
                                 )
                             )
                         except nacl.exceptions.CryptoError:
-                            LOGGER.error(f"Could not decrypt {enfile['path']}")
+                            LOGGER.error(f"Could not decrypt {enfile['localpath']}")
                             break
                         done += len(chunk)
         else:
@@ -136,12 +148,12 @@ async def unlock(opts: sd_lock_utility.types.SDUnlockOptions):
                     opts, session, enfile
                 )
             except nacl.exceptions.CryptoError:
-                LOGGER.error(f"Could not decrypt {enfile['path']}")
-        LOGGER.info(f"Decrypted {enfile['path']}")
+                LOGGER.error(f"Could not decrypt {enfile['localpath']}")
+        LOGGER.info(f"Decrypted {enfile['localpath']}")
 
     # Remove originals if required
     if opts["no_preserve_original"] and not opts["no_content_download"]:
         for enfile in enfiles:
-            os.remove(enfile["path"] + ".c4gh")
+            os.remove(enfile["localpath"] + ".c4gh")
 
     return await sd_lock_utility.client.kill_session(session, 0)

@@ -55,6 +55,7 @@ class SDCommandBaseOptions(typing.TypedDict):
     openstack_auth_url: str
     sd_connect_address: str
     sd_api_token: str
+    prefix: str
     path: str
     no_preserve_original: bool
     no_check_certificate: bool
@@ -79,6 +80,7 @@ class SDUtilFile(typing.TypedDict):
     # Note that the filename and path always point to the plain-text file,
     # so the encrypted file identifier needs to be added separately.
     path: str
+    localpath: str
     session_key: bytes
 
 
