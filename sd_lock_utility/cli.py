@@ -36,6 +36,11 @@ LOGGER = logging.getLogger("sd-lock-util")
     "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
 )
 @click.option(
+    "--prefix",
+    default="",
+    help="Prefix to prepend to paths when uploading (used for uploading to subfolders).",
+)
+@click.option(
     "--no-content-upload",
     is_flag=True,
     help="Upload headers and encrypt in place. User will provide the upload script afterwards.",
@@ -70,6 +75,7 @@ def lock(
     os_auth_url: str,
     sd_connect_address: str,
     sd_api_token: str,
+    prefix: str,
     no_content_upload: bool,
     no_preserve_original: bool,
     no_check_certificate: bool,
@@ -99,6 +105,7 @@ def lock(
         "no_content_upload": no_content_upload,
         "no_preserve_original": no_preserve_original,
         "sd_api_token": sd_api_token,
+        "prefix": prefix,
         "no_check_certificate": no_check_certificate,
         "progress": progress,
     }
@@ -158,6 +165,7 @@ def pubkey(
         "openstack_auth_url": "",
         "sd_connect_address": sd_connect_address,
         "sd_api_token": sd_api_token,
+        "prefix": "",
         "path": "",
         "no_preserve_original": False,
         "no_check_certificate": no_check_certificate,
@@ -187,7 +195,16 @@ def pubkey(
 @click.option(
     "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
 )
-@click.option("--path", default="", help="Path where the downloaded files are.")
+@click.option(
+    "--prefix",
+    default="",
+    help="Prefix to use with paths when downloading (used for downloading from subfolders).",
+)
+@click.option(
+    "--path",
+    default="",
+    help="Path where the downloaded files are. If used together with --no-content-download signifies a single file download.",
+)
 @click.option(
     "--no-content-download",
     is_flag=True,
@@ -217,6 +234,7 @@ def unlock(
     os_auth_url: str,
     sd_connect_address: str,
     sd_api_token: str,
+    prefix: str,
     no_content_download: bool,
     no_preserve_original: bool,
     no_check_certificate: bool,
@@ -243,6 +261,7 @@ def unlock(
         "no_content_download": no_content_download,
         "no_preserve_original": no_preserve_original,
         "sd_api_token": sd_api_token,
+        "prefix": prefix,
         "no_check_certificate": no_check_certificate,
         "progress": progress,
     }

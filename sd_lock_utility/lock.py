@@ -29,10 +29,6 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
         no_check_certificate=opts["no_check_certificate"],
     )
 
-    if os.path.isfile(opts["path"]):
-        LOGGER.error("Operations on single files not yet supported.")
-        return await sd_lock_utility.client.kill_session(session, 2)
-
     # Get the public key used in uploading
     pubkey_str = await sd_lock_utility.client.get_public_key(session)
     if not pubkey_str:
@@ -43,7 +39,11 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
     # Get all files in the path
     LOGGER.info("Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
-    for root, _, files in os.walk(opts["path"]):
+    for root, _, files in (
+        os.walk(opts["path"])
+        if not os.path.isfile(opts["path"])
+        else [("", [], [opts["path"]])]
+    ):
         for file in files:
             # Create an ephemeral keypair
             session_key = os.urandom(32)
@@ -55,14 +55,17 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
             header_bytes: bytes = crypt4gh.header.serialize(header_packets)
 
             to_add: sd_lock_utility.types.SDUtilFile = {
-                "path": root + "/" + file,
+                "path": opts["prefix"] + ((root + "/" + file) if root else file),
+                "localpath": (root + "/" + file) if root else file,
                 "session_key": session_key,
             }
 
             LOGGER.debug(f"Adding file {to_add} for encryption.")
 
             # Upload the file header
-            LOGGER.debug(f"Uploading header for ${to_add['path']}")
+            LOGGER.debug(
+                f"Uploading header for ${to_add['localpath']} to {to_add['path']}"
+            )
             await sd_lock_utility.client.push_header(
                 session,
                 header_bytes,
@@ -77,16 +80,19 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
         await sd_lock_utility.os_client.openstack_get_token(session)
 
     for enfile in enfiles:
-        size: int = os.stat(enfile["path"]).st_size
+        size: int = os.stat(enfile["localpath"]).st_size
         # Only encrypt if requested
         if opts["no_content_upload"]:
             for enfile in enfiles:
                 done: int = 0
-                with open(enfile["path"], "rb") as f:
-                    with open(f"{enfile['path']}.c4gh", "wb") as out_f:
+                with open(enfile["localpath"], "rb") as f:
+                    with open(f"{enfile['localpath']}.c4gh", "wb") as out_f:
                         while chunk := f.read(65536):
                             if opts["progress"]:
-                                print(f"{enfile['path']}        {done}/{size}", end="\r")
+                                print(
+                                    f"{enfile['localpath']}        {done}/{size}",
+                                    end="\r",
+                                )
 
                             nonce = os.urandom(12)
                             segment = (
@@ -100,7 +106,7 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
                             out_f.write(nonce)
                             out_f.write(segment)
                             done += len(chunk)
-                LOGGER.info(f"Encrypted {enfile['path']}")
+                LOGGER.info(f"Encrypted {enfile['localpath']}")
         # Otherwise upload the contents to object storage
         else:
             # 5366415360 is the largest size that can fit to 5GiB after encryption overhead
@@ -114,13 +120,13 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
             await sd_lock_utility.os_client.openstack_create_manifest(
                 session, enfile, segments_uuid
             )
-            LOGGER.info(f"Encrypted and uploaded {enfile['path']}")
+            LOGGER.info(f"Encrypted and uploaded {enfile['localpath']}")
 
     # Remove original files if required
     if opts["no_preserve_original"]:
         for enfile in enfiles:
-            LOGGER.info(f"Removing {enfile['path']}")
-            os.remove(enfile["path"])
+            LOGGER.info(f"Removing {enfile['localpath']}")
+            os.remove(enfile["localpath"])
 
     return await sd_lock_utility.client.kill_session(session, 0)
 

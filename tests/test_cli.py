@@ -78,6 +78,7 @@ class TestCliFunctions(unittest.TestCase):
                 "no_content_upload": False,
                 "no_preserve_original": True,
                 "sd_api_token": "test-token",
+                "prefix": "",
                 "no_check_certificate": True,
                 "progress": True,
             }
@@ -117,6 +118,7 @@ class TestCliFunctions(unittest.TestCase):
                 "sd_connect_address": "test-address",
                 "no_preserve_original": False,
                 "sd_api_token": "test-token",
+                "prefix": "",
                 "no_check_certificate": True,
                 "progress": False,
             }
@@ -166,6 +168,7 @@ class TestCliFunctions(unittest.TestCase):
                 "no_content_download": False,
                 "no_preserve_original": True,
                 "sd_api_token": "test-token",
+                "prefix": "",
                 "no_check_certificate": True,
                 "progress": True,
             }

@@ -155,7 +155,13 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
         ret = []
         with patch_os_stat, patch_aiofiles, patch_urandom, patch_encrypt:
             async for seg in sd_lock_utility.os_client.slice_encrypted_segment(
-                {"progress": True}, {"path": "test-path", "session_key": "test-key"}, 0
+                {"progress": True},
+                {
+                    "path": "test-path",
+                    "localpath": "test-path",
+                    "session_key": "test-key",
+                },
+                0,
             ):
                 ret.append(seg)
 
@@ -297,7 +303,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
         """Test get_container_objects gets all pages of container objects."""
         object_pages = ["test-object-1", "test-object-2", "test-object-3"]
 
-        async def mock_test_object_page(*_):
+        async def mock_test_object_page(*_, **__):
             if len(object_pages) > 0:
                 return [object_pages.pop()]
             return []
@@ -310,7 +316,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             ret = await sd_lock_utility.os_client.get_container_objects(self.test_session)
 
         self.assertEqual(
-            ret, [("", "", ["test-object-3", "test-object-2", "test-object-1"])]
+            ret, [("", [], ["test-object-3", "test-object-2", "test-object-1"])]
         )
 
     async def test_openstack_download_decrypted_object(self):
@@ -345,7 +351,11 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             await sd_lock_utility.os_client.openstack_download_decrypted_object(
                 {"progress": True},
                 self.test_session,
-                {"path": "test/file", "session_key": "test-key"},
+                {
+                    "path": "test/file",
+                    "localpath": "test/file",
+                    "session_key": "test-key",
+                },
             )
 
         self.test_session["client"].get.assert_called_once_with(

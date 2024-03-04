@@ -76,16 +76,16 @@ async def slice_encrypted_segment(
     order: int,
 ) -> typing.AsyncGenerator[bytes, None]:
     """Slice a file into an async generator of encrypted chunks."""
-    size: int = os.stat(file["path"]).st_size
+    size: int = os.stat(file["localpath"]).st_size
     done: int = 5366415360 * order
-    async with aiofiles.open(file["path"], "rb") as f:
+    async with aiofiles.open(file["localpath"], "rb") as f:
         await f.seek(done)
         for _ in range(0, 81885):
             chunk = await f.read(65536)
             if not chunk:
                 return
             if opts["progress"]:
-                print(f"{file['path']}        {done}/{size}", end="\r")
+                print(f"{file['localpath']}        {done}/{size}", end="\r")
             nonce = os.urandom(12)
             segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
                 chunk,
@@ -169,7 +169,9 @@ async def openstack_create_manifest(
 
 
 async def get_container_objects_page(
-    session: sd_lock_utility.types.SDAPISession, marker: str = ""
+    session: sd_lock_utility.types.SDAPISession,
+    marker: str = "",
+    prefix: str = "",
 ) -> list[str]:
     """Get a single page of the container object listing."""
     params = {
@@ -177,6 +179,9 @@ async def get_container_objects_page(
     }
     if marker:
         params["marker"] = marker
+    if prefix:
+        params["prefix"] = prefix
+
     async with session["client"].get(
         f"{session['openstack_object_storage_endpoint']}/{session['container']}",
         headers={
@@ -192,18 +197,19 @@ async def get_container_objects_page(
 
 async def get_container_objects(
     session: sd_lock_utility.types.SDAPISession,
-) -> list[tuple[str, str, list[str]]]:
+    prefix: str = "",
+) -> list[tuple[str, list[str], list[str]]]:
     """Get the contents of a container in object storage."""
     ret: list[str] = []
 
-    page = await get_container_objects_page(session)
+    page = await get_container_objects_page(session, prefix=prefix)
     while len(page):
         ret = ret + page
-        page = await get_container_objects_page(session, page[-1])
+        page = await get_container_objects_page(session, marker=page[-1], prefix=prefix)
 
     LOGGER.debug(f"Object listing in container {session['container']}: {ret}")
 
-    return [("", "", ret)]
+    return [("", [], ret)]
 
 
 async def openstack_download_decrypted_object(
@@ -220,10 +226,10 @@ async def openstack_download_decrypted_object(
     ) as resp:
         size: int = int(resp.headers["Content-Length"])
         done: int = 0
-        async with aiofiles.open(file["path"], "wb") as out_f:
+        async with aiofiles.open(file["localpath"], "wb") as out_f:
             while True:
                 if opts["progress"]:
-                    print(f"{file['path']}        {done}/{size}", end="\r")
+                    print(f"{file['localpath']}        {done}/{size}", end="\r")
 
                 try:
                     chunk = await resp.content.readexactly(65564)
