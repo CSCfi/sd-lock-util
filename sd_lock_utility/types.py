@@ -59,6 +59,8 @@ class SDCommandBaseOptions(typing.TypedDict):
     no_preserve_original: bool
     no_check_certificate: bool
     progress: bool
+    debug: bool
+    verbose: bool
 
 
 class SDLockOptions(SDCommandBaseOptions):

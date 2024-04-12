@@ -1,7 +1,6 @@
 """CLI for locking and unlocking files with SD Connect upload API."""
 
 import asyncio
-import logging
 import os
 import sys
 
@@ -11,9 +10,6 @@ import sd_lock_utility.exceptions
 import sd_lock_utility.lock
 import sd_lock_utility.types
 import sd_lock_utility.unlock
-
-logging.basicConfig(level=logging.ERROR)
-LOGGER = logging.getLogger("sd-lock-util")
 
 
 @click.command()
@@ -63,7 +59,9 @@ LOGGER = logging.getLogger("sd-lock-util")
     help="Print more information.",
 )
 @click.option("--debug", is_flag=True, help="Print debug information.")
-@click.option("--progress", is_flag=True, help="Display file progress information.")
+@click.option(
+    "--progress/--no-progress", default=True, help="Display file progress information."
+)
 @click.argument("path")
 def lock(
     path: str,
@@ -83,18 +81,16 @@ def lock(
     progress: bool,
 ) -> None:
     """Lock a file or folder."""
-    if debug:
-        LOGGER.setLevel(logging.DEBUG)
-    elif verbose:
-        LOGGER.setLevel(logging.INFO)
-    else:
-        LOGGER.setLevel(logging.ERROR)
-
     if not os.path.exists(path):
-        logging.error("Could not access the provided path.")
+        click.echo("Could not access the provided path.", err=True)
+        sys.exit(3)
+
+    if progress and debug:
+        click.echo("Progress can't be reliably printed with debug information.", err=True)
+        click.echo("Progress will not be displayed while debug mode is used.", err=True)
 
     opts: sd_lock_utility.types.SDLockOptions = {
-        "path": path,
+        "path": path.rstrip("/"),
         "container": container,
         "project_id": project_id,
         "project_name": project_name,
@@ -106,7 +102,9 @@ def lock(
         "sd_api_token": sd_api_token,
         "prefix": prefix,
         "no_check_certificate": no_check_certificate,
-        "progress": progress,
+        "progress": progress if not debug else False,
+        "debug": debug,
+        "verbose": verbose,
     }
 
     ret = asyncio.run(sd_lock_utility.lock.lock(opts))
@@ -130,7 +128,7 @@ def lock(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -149,13 +147,6 @@ def pubkey(
     debug: bool,
 ) -> None:
     """Fetch and display the project public key."""
-    if debug:
-        LOGGER.setLevel(logging.DEBUG)
-    elif verbose:
-        LOGGER.setLevel(logging.INFO)
-    else:
-        LOGGER.setLevel(logging.ERROR)
-
     opts: sd_lock_utility.types.SDCommandBaseOptions = {
         "container": "placeholder",
         "project_id": project_id,
@@ -169,6 +160,8 @@ def pubkey(
         "no_preserve_original": False,
         "no_check_certificate": no_check_certificate,
         "progress": False,
+        "debug": debug,
+        "verbose": verbose,
     }
 
     ret = asyncio.run(sd_lock_utility.lock.get_pubkey(opts))
@@ -223,7 +216,9 @@ def pubkey(
     help="Print more information.",
 )
 @click.option("--debug", is_flag=True, help="Print debug information.")
-@click.option("--progress", is_flag=True, help="Display file progress information.")
+@click.option(
+    "--progress/--no-progress", default=True, help="Display file progress information."
+)
 def unlock(
     path: str,
     container: str,
@@ -242,15 +237,16 @@ def unlock(
     progress: bool,
 ):
     """Unlock a file or folder."""
-    if debug:
-        LOGGER.setLevel(logging.DEBUG)
-    elif verbose:
-        LOGGER.setLevel(logging.INFO)
-    else:
-        LOGGER.setLevel(logging.ERROR)
+    if path and not os.path.exists(path):
+        click.echo("Could not access the provided path.", err=True)
+        sys.exit(3)
+
+    if progress and debug:
+        click.echo("Progress can't be reliably printed with debug information.", err=True)
+        click.echo("Progress will not be displayed while debug mode is used.", err=True)
 
     opts: sd_lock_utility.types.SDUnlockOptions = {
-        "path": path,
+        "path": path.rstrip("/"),
         "container": container,
         "project_id": project_id,
         "project_name": project_name,
@@ -262,7 +258,9 @@ def unlock(
         "sd_api_token": sd_api_token,
         "prefix": prefix,
         "no_check_certificate": no_check_certificate,
-        "progress": progress,
+        "progress": progress if not debug else False,
+        "debug": debug,
+        "verbose": verbose,
     }
 
     ret = asyncio.run(sd_lock_utility.unlock.unlock(opts))

@@ -39,3 +39,7 @@ class NoHeaderPushAccess(Exception):
 
 class NoFileHeader(Exception):
     """Could not find a file header."""
+
+
+class HandleClientExceptions:
+    """Class for gracefully handling exceptions generating by the client."""

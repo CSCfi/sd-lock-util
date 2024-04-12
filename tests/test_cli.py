@@ -79,7 +79,9 @@ class TestCliFunctions(unittest.TestCase):
                 "sd_api_token": "test-token",
                 "prefix": "",
                 "no_check_certificate": True,
-                "progress": True,
+                "progress": False,
+                "debug": True,
+                "verbose": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -120,6 +122,8 @@ class TestCliFunctions(unittest.TestCase):
                 "prefix": "",
                 "no_check_certificate": True,
                 "progress": False,
+                "debug": False,
+                "verbose": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -169,7 +173,9 @@ class TestCliFunctions(unittest.TestCase):
                 "sd_api_token": "test-token",
                 "prefix": "",
                 "no_check_certificate": True,
-                "progress": True,
+                "progress": False,
+                "debug": True,
+                "verbose": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
