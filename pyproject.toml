@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Communications :: File Sharing",
 ]
 dependencies = [
-    "aiohttp==3.9.3",
+    "aiohttp==3.9.4",
     "click==8.1.7",
     "crypt4gh==1.6",
     "aiofiles==23.2.1",
@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "black==24.3.0",
+    "black==24.4.0",
     "coverage==7.4.4",
     "flake8-docstrings==1.7.0",
     "flake8==7.0.0",
@@ -45,8 +45,8 @@ test = [
 dev = [
     "pre-commit==3.7.0",
     "pyspelling==2.10",
-    "ruff==0.3.5",
-    "types-aiofiles==23.2.0.20240331",
+    "ruff==0.3.7",
+    "types-aiofiles==23.2.0.20240403",
 ]
 
 [project.scripts]
