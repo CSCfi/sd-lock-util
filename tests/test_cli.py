@@ -25,10 +25,12 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock = unittest.mock.Mock(return_value=0)
         self.patch_lock = unittest.mock.patch(
-            "sd_lock_utility.cli.sd_lock_utility.lock.lock", self.mock_lock
+            "sd_lock_utility.cli.sd_lock_utility.lock.wrap_lock_exceptions",
+            self.mock_lock,
         )
         self.patch_unlock = unittest.mock.patch(
-            "sd_lock_utility.cli.sd_lock_utility.unlock.unlock", self.mock_lock
+            "sd_lock_utility.cli.sd_lock_utility.unlock.wrap_unlock_exceptions",
+            self.mock_lock,
         )
         self.patch_pubkey = unittest.mock.patch(
             "sd_lock_utility.cli.sd_lock_utility.lock.get_pubkey", self.mock_lock
