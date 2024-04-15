@@ -1,10 +1,12 @@
 """Folder lock operation."""
 
+import asyncio
 import base64
 import os
 import secrets
 import typing
 
+import aiohttp
 import click
 import crypt4gh.header
 import nacl.bindings
@@ -45,7 +47,11 @@ async def process_file_lock(
 
     # Alternatively encrypt and upload the file in a single operation
     segments_uuid: str = secrets.token_urlsafe(32)
-    for object_segment in range(0, -(-size // 5366415360)):
+    total_segments = -(-size // 5366415360)
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Uploading the file in {total_segments} segments"
+    )
+    for object_segment in range(0, total_segments):
         await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
             opts,
             session,
@@ -55,6 +61,9 @@ async def process_file_lock(
             bar,
         )
 
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Generating a DLO manifest for {enfile['path']}"
+    )
     await sd_lock_utility.os_client.openstack_create_manifest(
         session, enfile, segments_uuid
     )
@@ -62,36 +71,17 @@ async def process_file_lock(
     return 0
 
 
-async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
+async def lock(
+    opts: sd_lock_utility.types.SDLockOptions, session: sd_lock_utility.types.SDAPISession
+) -> int:
     """Lock an unencrypted folder."""
-    try:
-        session = await sd_lock_utility.client.open_session(
-            container=opts["container"],
-            address=opts["sd_connect_address"],
-            project_id=opts["project_id"],
-            project_name=opts["project_name"],
-            token=opts["sd_api_token"],
-            os_auth_url=opts["openstack_auth_url"],
-            no_check_certificate=opts["no_check_certificate"],
-        )
-    except sd_lock_utility.exceptions.NoToken:
-        click.echo("No API access token was provided.", err=True)
-        return 3
-    except sd_lock_utility.exceptions.NoAddress:
-        click.echo("No API address was provided.", err=True)
-        return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
-        return 3
-    except sd_lock_utility.exceptions.NoContainer:
-        click.echo("No container was provided for uploads.", err=True)
-        return 3
-
     # Get the public key used in uploading
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, "Fetching public key for the upload operation"
+    )
     pubkey_str = await sd_lock_utility.client.get_public_key(session)
     if not pubkey_str:
-        click.echo("Could not access project public key for encryption.", err=True)
-        return await sd_lock_utility.client.kill_session(session, 5)
+        raise sd_lock_utility.exceptions.NoKey
     pubkey = base64.urlsafe_b64decode(pubkey_str)
 
     # Get all files in the path
@@ -156,29 +146,162 @@ async def lock(opts: sd_lock_utility.types.SDLockOptions) -> int:
     # Remove original files if required
     if opts["no_preserve_original"]:
         for enfile in enfiles:
-            sd_lock_utility.common.conditional_echo_verbose(
-                opts, f"Removing {enfile['localpath']}"
+            confirm = click.prompt(
+                "Original file removal was cheduled after encryption. Do you want to continue with the removal?",
+                default="n",
+                type=click.Choice(choices=["y", "n"], case_sensitive=False),
+                show_default=True,
+                show_choices=True,
             )
-            os.remove(enfile["localpath"])
+            if confirm == "y":
+                sd_lock_utility.common.conditional_echo_verbose(
+                    opts, f"Deleting original file {enfile['localpath']}"
+                )
+                os.remove(enfile["localpath"])
 
-    return await sd_lock_utility.client.kill_session(session, 0)
+    return 0
+
+
+async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int:
+    """Wrap the lock operation with required exception handling."""
+    try:
+        session = await sd_lock_utility.client.open_session(
+            container=opts["container"],
+            address=opts["sd_connect_address"],
+            project_id=opts["project_id"],
+            project_name=opts["project_name"],
+            token=opts["sd_api_token"],
+            os_auth_url=opts["openstack_auth_url"],
+            no_check_certificate=opts["no_check_certificate"],
+        )
+    except sd_lock_utility.exceptions.NoToken:
+        click.echo("No API access token was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoAddress:
+        click.echo("No API address was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoProject:
+        click.echo("No Openstack project information was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoContainer:
+        click.echo("No container was provided for uploads.", err=True)
+        return 3
+
+    exc: typing.Any = None
+    ret = 0
+    try:
+        async with aiohttp.ClientSession(
+            raise_for_status=True,
+        ) as cs:
+            session["client"] = cs
+            ret = await lock(opts, session)
+    except asyncio.CancelledError:
+        click.echo("Received a keyboard interrupt, aborting...", err=True)
+        click.echo("Files that were already uploaded will not be removed.", err=True)
+        return 0
+    except sd_lock_utility.exceptions.NoKey:
+        click.echo("Could not access project public key for encryption.", err=True)
+        click.echo("Check that you're using the correct project.", err=True)
+    except aiohttp.ClientResponseError as cex:
+        if cex.status == 401 and not opts["debug"]:
+            click.echo("Authentication was not successful.", err=True)
+            click.echo(
+                "Check that your SD Connect token is still valid and Openstack credentials are correct.",
+                err=True,
+            )
+        else:
+            exc = cex
+    except sd_lock_utility.exceptions.ContainerCreationFailed:
+        click.echo("Could not create container/bucket for upload.", err=True)
+    except Exception as e:
+        ret = 42
+        exc = e
+    finally:
+        # Log unhandled exceptions, but don't let them bubble
+        if exc is not None:
+            click.echo("Program encountered an unhandled exception.", err=True)
+            click.echo(
+                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
+                err=True,
+            )
+            click.echo(
+                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
+                err=True,
+            )
+            click.echo("Exception details:", err=True)
+            click.echo(
+                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
+            )
+            raise exc
+
+    return ret
 
 
 async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
     """Fetch and display the project public key."""
-    session = await sd_lock_utility.client.open_session(
-        container=opts["container"],
-        address=opts["sd_connect_address"],
-        project_id=opts["project_id"],
-        project_name=opts["project_name"],
-        token=opts["sd_api_token"],
-        os_auth_url=opts["openstack_auth_url"],
-        no_check_certificate=opts["no_check_certificate"],
-    )
+    try:
+        session = await sd_lock_utility.client.open_session(
+            container=opts["container"],
+            address=opts["sd_connect_address"],
+            project_id=opts["project_id"],
+            project_name=opts["project_name"],
+            token=opts["sd_api_token"],
+            os_auth_url=opts["openstack_auth_url"],
+            no_check_certificate=opts["no_check_certificate"],
+        )
+    except sd_lock_utility.exceptions.NoToken:
+        click.echo("No API access token was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoAddress:
+        click.echo("No API address was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoProject:
+        click.echo("No Openstack project information was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoContainer:
+        click.echo("No container was provided for uploads.", err=True)
+        return 3
 
-    pubkey = await sd_lock_utility.client.get_public_key(session)
+    exc: typing.Any = None
+    ret = 0
+    try:
+        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+            session["client"] = cs
+            pubkey = await sd_lock_utility.client.get_public_key(session)
+        await asyncio.sleep(0.250)
+    except asyncio.CancelledError:
+        click.echo("Received a keyboard interrupt, aborting...", err=True)
+        return 0
+    except aiohttp.ClientResponseError as cex:
+        if cex.status == 401 and not opts["debug"]:
+            click.echo("Authentication was not successful.", err=True)
+            click.echo(
+                "Check that your SD Connect token is still valid and Openstack credentials are correct.",
+                err=True,
+            )
+        else:
+            exc = cex
+    except Exception as e:
+        exc = e
+    finally:
+        if exc is not None:
+            click.echo("Program encountered an unhandled exception.", err=True)
+            click.echo(
+                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
+                err=True,
+            )
+            click.echo(
+                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
+                err=True,
+            )
+            click.echo("Exception details:", err=True)
+            click.echo(
+                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
+            )
+            raise exc
+
     click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
     click.echo(pubkey)
     click.echo("-----END CRYPT4GH PUBLIC KEY-----")
 
-    return await sd_lock_utility.client.kill_session(session, 0)
+    return ret

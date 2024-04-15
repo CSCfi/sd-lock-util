@@ -43,16 +43,14 @@ async def open_session(
     """Open a new session for accessing SD API."""
     # Use a default timeout of 28800 to match the token lifetime.
     aiohttp.ClientTimeout(
-        total=28800,
+        total=1,
         connect=240,
         sock_connect=60,
         sock_read=600,
     )
 
     ret: sd_lock_utility.types.SDAPISession = {
-        "client": aiohttp.ClientSession(
-            raise_for_status=True,
-        ),
+        "client": None,
         "token": (
             token.encode("utf-8")
             if token
@@ -141,12 +139,6 @@ async def open_session(
     return ret
 
 
-async def kill_session(session: sd_lock_utility.types.SDAPISession, ret: int) -> int:
-    """Gracefully close the session."""
-    await session["client"].close()
-    return ret
-
-
 async def signed_fetch(
     session: sd_lock_utility.types.SDAPISession,
     path: str,
@@ -168,7 +160,7 @@ async def signed_fetch(
     if params is not None:
         signature.update(params)  # type: ignore
 
-    async with session["client"].request(
+    async with session["client"].request(  # type: ignore
         method=method,
         url=url,
         params=signature,

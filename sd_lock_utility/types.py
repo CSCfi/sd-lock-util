@@ -18,7 +18,7 @@ MAX_SIMULTANEOUS_UPLOADS: int = int(
 class SDAPISession(typing.TypedDict):
     """Type definition for session variables."""
 
-    client: aiohttp.ClientSession
+    client: aiohttp.client.ClientSession | None
     token: bytes
     address: str
     openstack_project_id: str

@@ -107,7 +107,11 @@ def lock(
         "verbose": verbose,
     }
 
-    ret = asyncio.run(sd_lock_utility.lock.lock(opts))
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.lock.wrap_lock_exceptions(opts))
+    except KeyboardInterrupt:
+        ret = 0
     sys.exit(ret)
 
 
@@ -164,7 +168,11 @@ def pubkey(
         "verbose": verbose,
     }
 
-    ret = asyncio.run(sd_lock_utility.lock.get_pubkey(opts))
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.lock.get_pubkey(opts))
+    except KeyboardInterrupt:
+        ret = 0
 
     sys.exit(ret)
 
@@ -263,7 +271,11 @@ def unlock(
         "verbose": verbose,
     }
 
-    ret = asyncio.run(sd_lock_utility.unlock.unlock(opts))
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.unlock.wrap_unlock_exceptions(opts))
+    except KeyboardInterrupt:
+        ret = 0
     sys.exit(ret)
 
 
