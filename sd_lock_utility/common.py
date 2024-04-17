@@ -1,6 +1,5 @@
 """Common miscellaneous functions for lock-util."""
 
-
 import click
 
 import sd_lock_utility.types

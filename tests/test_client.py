@@ -133,8 +133,10 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
                 sd_lock_utility.client.aiohttp.client.InvalidURL("test-url"),
             )
         )
-        with self.patch_sign_request, self.patch_timeout, self.assertRaises(
-            sd_lock_utility.client.aiohttp.client.InvalidURL
+        with (
+            self.patch_sign_request,
+            self.patch_timeout,
+            self.assertRaises(sd_lock_utility.client.aiohttp.client.InvalidURL),
         ):
             await sd_lock_utility.client.signed_fetch(self.test_session, "/test/path")
 

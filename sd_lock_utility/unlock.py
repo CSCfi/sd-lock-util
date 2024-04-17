@@ -30,9 +30,10 @@ async def process_file_unlock(
     sd_lock_utility.common.conditional_echo_debug(
         opts, f"Decrypting file contents for file and saving to {enfile['localpath']}"
     )
-    with open(f"{enfile['localpath']}.c4gh", "rb") as f, open(
-        enfile["localpath"], "wb"
-    ) as out_f:
+    with (
+        open(f"{enfile['localpath']}.c4gh", "rb") as f,
+        open(enfile["localpath"], "wb") as out_f,
+    ):
         while chunk := f.read(65564):
             nonce = chunk[:12]
             content = chunk[12:]
