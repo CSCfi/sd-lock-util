@@ -1,7 +1,7 @@
 """CLI for locking and unlocking files with SD Connect upload API."""
 
 import asyncio
-import os
+import pathlib
 import sys
 
 import click
@@ -81,7 +81,8 @@ def lock(
     progress: bool,
 ) -> None:
     """Lock a file or folder."""
-    if not os.path.exists(path):
+    plpath = pathlib.Path(path)
+    if not plpath.exists():
         click.echo("Could not access the provided path.", err=True)
         sys.exit(3)
 
@@ -90,7 +91,7 @@ def lock(
         click.echo("Progress will not be displayed while debug mode is used.", err=True)
 
     opts: sd_lock_utility.types.SDLockOptions = {
-        "path": path.rstrip("/"),
+        "path": plpath,
         "container": container,
         "project_id": project_id,
         "project_name": project_name,
@@ -160,7 +161,7 @@ def pubkey(
         "sd_connect_address": sd_connect_address,
         "sd_api_token": sd_api_token,
         "prefix": "",
-        "path": "",
+        "path": pathlib.Path("."),
         "no_preserve_original": False,
         "no_check_certificate": no_check_certificate,
         "progress": False,
@@ -245,7 +246,8 @@ def unlock(
     progress: bool,
 ):
     """Unlock a file or folder."""
-    if path and not os.path.exists(path):
+    plpath = pathlib.Path(path)
+    if path and not plpath.exists():
         click.echo("Could not access the provided path.", err=True)
         sys.exit(3)
 
@@ -254,7 +256,8 @@ def unlock(
         click.echo("Progress will not be displayed while debug mode is used.", err=True)
 
     opts: sd_lock_utility.types.SDUnlockOptions = {
-        "path": path.rstrip("/"),
+        "path": plpath,
+        "no_path": True if not path else False,
         "container": container,
         "project_id": project_id,
         "project_name": project_name,

@@ -2,7 +2,7 @@
 
 import asyncio
 import base64
-import os
+import pathlib
 import secrets
 import typing
 
@@ -29,20 +29,24 @@ async def process_file_lock(
     """Process file lock encryption with optional uploading."""
     # Skip uploading if requested
     if opts["no_content_upload"]:
-        with open(enfile["localpath"], "rb") as f:
-            with open(f"{enfile['localpath']}.c4gh", "wb") as out_f:
-                while chunk := f.read(65536):
-                    nonce = secrets.token_bytes(12)
-                    segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
-                        chunk,
-                        None,
-                        nonce,
-                        enfile["session_key"],
-                    )
-                    out_f.write(nonce)
-                    out_f.write(segment)
-                    if bar:
-                        bar.update(len(chunk))
+        with (
+            enfile["localpath"].open(mode="rb") as f,
+            enfile["localpath"]
+            .with_name(enfile["localpath"].name + ".c4gh")
+            .open(mode="wb") as out_f,
+        ):
+            while chunk := f.read(65536):
+                nonce = secrets.token_bytes(12)
+                segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
+                    chunk,
+                    None,
+                    nonce,
+                    enfile["session_key"],
+                )
+                out_f.write(nonce)
+                out_f.write(segment)
+                if bar:
+                    bar.update(len(chunk))
         return 0
 
     # Alternatively encrypt and upload the file in a single operation
@@ -62,7 +66,7 @@ async def process_file_lock(
         )
 
     sd_lock_utility.common.conditional_echo_debug(
-        opts, f"Generating a DLO manifest for {enfile['path']}"
+        opts, f"Generating a DLO manifest for {enfile['path']}.c4gh"
     )
     await sd_lock_utility.os_client.openstack_create_manifest(
         session, enfile, segments_uuid
@@ -88,11 +92,20 @@ async def lock(
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
     for root, _, files in (
-        os.walk(opts["path"])
-        if not os.path.isfile(opts["path"])
-        else [("", [], [opts["path"]])]
+        opts["path"].walk()
+        if not opts["path"].is_file()
+        else [
+            (
+                pathlib.Path("."),
+                [],
+                [
+                    opts["path"],
+                ],
+            )
+        ]
     ):
-        for file in files:
+        # Mypy doesn't seem to identify file item in listing correctly
+        for file in files:  # type: ignore
             # Create an ephemeral keypair
             session_key = secrets.token_bytes(32)
             priv_key_eph = nacl.public.PrivateKey.generate()
@@ -103,8 +116,8 @@ async def lock(
             header_bytes: bytes = crypt4gh.header.serialize(header_packets)
 
             to_add: sd_lock_utility.types.SDUtilFile = {
-                "path": opts["prefix"] + ((root + "/" + file) if root else file),
-                "localpath": (root + "/" + file) if root else file,
+                "path": pathlib.Path(opts["prefix"]) / (root / file),
+                "localpath": (root / file),
                 "session_key": session_key,
             }
 
@@ -114,12 +127,13 @@ async def lock(
 
             # Upload the file header
             sd_lock_utility.common.conditional_echo_debug(
-                opts, f"Uploading header for {to_add['localpath']} to {to_add['path']}"
+                opts,
+                f"Uploading header for {to_add['localpath']} to {to_add['path']}.c4gh",
             )
             await sd_lock_utility.client.push_header(
                 session,
                 header_bytes,
-                to_add["path"] + ".c4gh",
+                to_add["path"].with_name(to_add["path"].name + ".c4gh"),
             )
 
             enfiles.append(to_add)
@@ -132,7 +146,7 @@ async def lock(
         await sd_lock_utility.os_client.openstack_get_token(session)
 
     for enfile in enfiles:
-        size: int = os.stat(enfile["localpath"]).st_size
+        size: int = enfile["localpath"].stat().st_size
         # Print progress by default
         if opts["progress"]:
             # Can't annotate progress bar without using click internal vars
@@ -157,7 +171,7 @@ async def lock(
                 sd_lock_utility.common.conditional_echo_verbose(
                     opts, f"Deleting original file {enfile['localpath']}"
                 )
-                os.remove(enfile["localpath"])
+                enfile["localpath"].unlink()
 
     return 0
 

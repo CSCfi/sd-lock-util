@@ -3,6 +3,7 @@
 import base64
 import hmac
 import os
+import pathlib
 import time
 import typing
 
@@ -208,7 +209,7 @@ async def get_public_key(session: sd_lock_utility.types.SDAPISession) -> str:
 
 
 async def push_header(
-    session: sd_lock_utility.types.SDAPISession, header: bytes, filepath: str
+    session: sd_lock_utility.types.SDAPISession, header: bytes, filepath: pathlib.Path
 ) -> None:
     """Push a file header to SD API."""
     await signed_fetch(
@@ -219,7 +220,9 @@ async def push_header(
     )
 
 
-async def get_header(session: sd_lock_utility.types.SDAPISession, filepath: str) -> bytes:
+async def get_header(
+    session: sd_lock_utility.types.SDAPISession, filepath: pathlib.Path
+) -> bytes:
     """Get a file header from SD API."""
     ret = await signed_fetch(
         session,

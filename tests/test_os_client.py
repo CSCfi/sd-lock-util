@@ -1,5 +1,6 @@
 """Test functions in the os_client module."""
 
+import pathlib
 import types
 import unittest
 import unittest.mock
@@ -331,7 +332,14 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             ret = await sd_lock_utility.os_client.get_container_objects(self.test_session)
 
         self.assertEqual(
-            ret, [("", [], ["test-object-3", "test-object-2", "test-object-1"])]
+            ret,
+            [
+                (
+                    pathlib.Path("."),
+                    [],
+                    ["test-object-3", "test-object-2", "test-object-1"],
+                )
+            ],
         )
 
     async def test_openstack_download_decrypted_object(self):

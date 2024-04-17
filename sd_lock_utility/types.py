@@ -1,6 +1,7 @@
 """Common types for SD folder lock/unlock tool."""
 
 import os
+import pathlib
 import typing
 
 import aiohttp
@@ -55,7 +56,7 @@ class SDCommandBaseOptions(typing.TypedDict):
     sd_connect_address: str
     sd_api_token: str
     prefix: str
-    path: str
+    path: pathlib.Path
     no_preserve_original: bool
     no_check_certificate: bool
     progress: bool
@@ -73,6 +74,7 @@ class SDUnlockOptions(SDCommandBaseOptions):
     """Additional type definitions for unlock command options."""
 
     no_content_download: bool
+    no_path: bool
 
 
 class SDUtilFile(typing.TypedDict):
@@ -80,8 +82,8 @@ class SDUtilFile(typing.TypedDict):
 
     # Note that the filename and path always point to the plain-text file,
     # so the encrypted file identifier needs to be added separately.
-    path: str
-    localpath: str
+    path: pathlib.Path
+    localpath: pathlib.Path
     session_key: bytes
 
 

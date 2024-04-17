@@ -1,6 +1,7 @@
 """Functions for accessing openstack."""
 
 import asyncio
+import pathlib
 import secrets
 import time
 import typing
@@ -225,7 +226,7 @@ async def get_container_objects_page(
 async def get_container_objects(
     session: sd_lock_utility.types.SDAPISession,
     prefix: str = "",
-) -> list[tuple[str, list[str], list[str]]]:
+) -> list[tuple[pathlib.Path, list[str], list[str]]]:
     """Get the contents of a container in object storage."""
     ret: list[str] = []
 
@@ -234,7 +235,7 @@ async def get_container_objects(
         ret = ret + page
         page = await get_container_objects_page(session, marker=page[-1], prefix=prefix)
 
-    return [("", [], ret)]
+    return [(pathlib.Path("."), [], ret)]
 
 
 async def openstack_download_decrypted_object(

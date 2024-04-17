@@ -1,5 +1,6 @@
 """Test CLI functions."""
 
+import pathlib
 import unittest
 import unittest.mock
 
@@ -69,7 +70,7 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock.assert_called_once_with(
             {
-                "path": "test-path",
+                "path": pathlib.Path("test-path"),
                 "container": "test-container",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",
@@ -112,7 +113,7 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock.assert_called_once_with(
             {
-                "path": "",
+                "path": pathlib.Path("."),
                 "container": "placeholder",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",
@@ -163,7 +164,8 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock.assert_called_once_with(
             {
-                "path": "test-path",
+                "path": pathlib.Path("test-path"),
+                "no_path": False,
                 "container": "test-container",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",

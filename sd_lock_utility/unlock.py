@@ -2,7 +2,6 @@
 
 import asyncio
 import io
-import os
 import pathlib
 import typing
 
@@ -28,11 +27,14 @@ async def process_file_unlock(
 ) -> int:
     """Process file unlock decryption."""
     sd_lock_utility.common.conditional_echo_debug(
-        opts, f"Decrypting file contents for file and saving to {enfile['localpath']}"
+        opts,
+        f"Decrypting file contents for file and saving to {str(enfile['localpath'])}",
     )
     with (
-        open(f"{enfile['localpath']}.c4gh", "rb") as f,
-        open(enfile["localpath"], "wb") as out_f,
+        enfile["localpath"]
+        .with_name(enfile["localpath"].name + ".c4gh")
+        .open(mode="rb") as f,
+        enfile["localpath"].open(mode="wb") as out_f,
     ):
         while chunk := f.read(65564):
             nonce = chunk[:12]
@@ -50,7 +52,7 @@ async def process_file_unlock(
                 if bar:
                     bar.update(len(chunk))
             except nacl.exceptions.CryptoError:
-                click.echo(f"Could not decrypt {enfile['localpath']}", err=True)
+                click.echo(f"Could not decrypt {enfile['localpath']}.c4gh", err=True)
                 break
 
     return 0
@@ -79,8 +81,8 @@ async def unlock(
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
 
-    files_to_decrypt: list[tuple[str, list[str], list[str]]] = []
-    if not opts["no_content_download"] and not opts["path"]:
+    files_to_decrypt: list[tuple[pathlib.Path, list[str], list[str]]] = []
+    if not opts["no_content_download"] and opts["no_path"]:
         sd_lock_utility.common.conditional_echo_verbose(
             opts, "Fetching a file listing from object storage..."
         )
@@ -88,18 +90,18 @@ async def unlock(
             session,
             opts["prefix"],
         )
-    elif os.path.isfile(opts["path"]) or (
-        not opts["no_content_download"] and opts["path"]
+    elif (opts["path"].is_file()) or (
+        not opts["no_content_download"] and not opts["path"].exists()
     ):
         sd_lock_utility.common.conditional_echo_debug(
             opts, "Creating a dummy list for single file download..."
         )
-        files_to_decrypt = [("", [], [opts["path"]])]
+        files_to_decrypt = [(pathlib.Path("."), [], [str(opts["path"])])]
     else:
         sd_lock_utility.common.conditional_echo_debug(
             opts, "Walking through the path to get a list of files..."
         )
-        files_to_decrypt = list(os.walk(opts["path"]))
+        files_to_decrypt = list(opts["path"].walk())
 
     sd_lock_utility.common.conditional_echo_debug(
         opts, "Fetching encapsulated decryption keys for file listing."
@@ -108,11 +110,8 @@ async def unlock(
         for root, _, files in files_to_decrypt:
             for file in files:
                 # Fetch and parse the file header
-                if root:
-                    path: str = root + "/" + file
-                else:
-                    path = file
-                if ".c4gh" not in file:
+                path: pathlib.Path = root / file
+                if not path.match("*.c4gh"):
                     sd_lock_utility.common.conditional_echo_verbose(
                         opts,
                         f"Skipping file {path} due to it not being an encrypted file.",
@@ -121,7 +120,7 @@ async def unlock(
                 # If not downloading content, and got a prefix, use prefix when
                 # fetching the header
                 if opts["prefix"] and opts["no_content_download"]:
-                    path = opts["prefix"] + path
+                    path = pathlib.Path(opts["prefix"]) / path
 
                 sd_lock_utility.common.conditional_echo_debug(
                     opts, f"Fetching a re-encrypted header for {path}."
@@ -144,16 +143,16 @@ async def unlock(
                 # We'll have to create the prefix separately even though os.walkdir
                 # gives it for us, due to openstack return missing precalculated
                 # prefixes
-                # Ensure necessary directories exist
-                prefix: str = path.replace(path.split("/")[-1], "").rstrip("/")
-                # Don't create the preceding folders if using a pseudofolder
-                if opts["prefix"]:
-                    prefix = prefix.replace(opts["prefix"].rstrip("/"), "")
-                pathlib.Path(prefix).mkdir(parents=True, exist_ok=True)
+                # Ensure necessary directories exist, don't create subfolder download prefix
+                sd_lock_utility.common.conditional_echo_debug(
+                    opts,
+                    f"Ensuring parent folders exist, parents: {path.parent.relative_to(opts['prefix'])}",
+                )
+                path.parent.relative_to(opts["prefix"]).mkdir(parents=True, exist_ok=True)
 
                 to_add: sd_lock_utility.types.SDUtilFile = {
-                    "path": path.replace(".c4gh", ""),
-                    "localpath": path.replace(".c4gh", "").replace(opts["prefix"], ""),
+                    "path": path.with_name(path.stem),
+                    "localpath": path.with_name(path.stem).relative_to(opts["prefix"]),
                     "session_key": session_keys[0],
                 }
 
@@ -171,7 +170,12 @@ async def unlock(
 
     for enfile in enfiles:
         if opts["no_content_download"]:
-            size: int = os.stat(f"{enfile['localpath']}.c4gh").st_size
+            size: int = (
+                enfile["localpath"]
+                .with_name(enfile["localpath"].name + ".c4gh")
+                .stat()
+                .st_size
+            )
             if opts["progress"]:
                 # Can't annotate progress bar without using click internal vars
                 with click.progressbar(  # type: ignore
@@ -186,7 +190,7 @@ async def unlock(
                     opts, session, enfile
                 )
             except nacl.exceptions.CryptoError:
-                click.echo(f"Could not decrypt {enfile['localpath']}", err=True)
+                click.echo(f"Could not decrypt {enfile['localpath']}.c4gh", err=True)
         sd_lock_utility.common.conditional_echo_verbose(
             opts, f"Decrypted {enfile['localpath']}"
         )
@@ -205,7 +209,7 @@ async def unlock(
                 sd_lock_utility.common.conditional_echo_verbose(
                     opts, f"Deleting original file {enfile['localpath']}.c4gh"
                 )
-                os.remove(enfile["localpath"] + ".c4gh")
+                enfile["localpath"].with_name(enfile["localpath"].name + ".c4gh").unlink()
 
     return 0
 
