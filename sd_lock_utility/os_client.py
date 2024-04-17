@@ -1,7 +1,7 @@
 """Functions for accessing openstack."""
 
 import asyncio
-import os
+import secrets
 import time
 import typing
 
@@ -82,7 +82,7 @@ async def slice_encrypted_segment(
                 chunk = await f.read(65536)
                 if not chunk:
                     return
-                nonce = os.urandom(12)
+                nonce = secrets.token_bytes(12)
                 segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
                     chunk,
                     None,

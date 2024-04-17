@@ -131,7 +131,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
 
         mock_urandom = unittest.mock.Mock(return_value=b"123456789012")
         patch_urandom = unittest.mock.patch(
-            "sd_lock_utility.os_client.os.urandom", mock_urandom
+            "sd_lock_utility.os_client.secrets.token_bytes", mock_urandom
         )
 
         mock_encrypt = unittest.mock.Mock(return_value=b"test-encrypted")

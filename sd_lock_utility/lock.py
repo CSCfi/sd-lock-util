@@ -32,7 +32,7 @@ async def process_file_lock(
         with open(enfile["localpath"], "rb") as f:
             with open(f"{enfile['localpath']}.c4gh", "wb") as out_f:
                 while chunk := f.read(65536):
-                    nonce = os.urandom(12)
+                    nonce = secrets.token_bytes(12)
                     segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
                         chunk,
                         None,
@@ -94,7 +94,7 @@ async def lock(
     ):
         for file in files:
             # Create an ephemeral keypair
-            session_key = os.urandom(32)
+            session_key = secrets.token_bytes(32)
             priv_key_eph = nacl.public.PrivateKey.generate()
             header_content = crypt4gh.header.make_packet_data_enc(0, session_key)
             header_packets = crypt4gh.header.encrypt(
