@@ -1,6 +1,5 @@
 """CLI for locking and unlocking files with SD Connect upload API."""
 
-
 import asyncio
 import logging
 import os
@@ -268,3 +267,18 @@ def unlock(
 
     ret = asyncio.run(sd_lock_utility.unlock.unlock(opts))
     sys.exit(ret)
+
+
+@click.group()
+def wrap():
+    """Group CLI functions into a single tool to simplify using pyinstaller."""
+    pass
+
+
+wrap.add_command(lock)
+wrap.add_command(unlock)
+wrap.add_command(pubkey)
+
+
+if __name__ == "__main__":
+    wrap()

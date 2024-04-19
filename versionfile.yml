@@ -1,0 +1,9 @@
+CompanyName: CSC-Tieteen tietotekniikan keskus Oy
+FileDescription: SD Lock Utility for SD Connect
+InternalName: sd-lock-util
+LegalCopyright: © CSC-Tieteen tietotekniikan keskus Oy
+OriginalFilename: sd-lock-util.exe
+ProductName: sd-lock-util
+Translation:
+  - langID: 1033
+    charsetID: 1200
