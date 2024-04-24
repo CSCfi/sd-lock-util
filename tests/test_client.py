@@ -153,8 +153,12 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
                 sd_lock_utility.client.aiohttp.client.ClientConnectionError,
             )
         )
-        with self.patch_sign_request, self.patch_timeout, self.assertRaises(
-            sd_lock_utility.client.aiohttp.client.ClientConnectionError,
+        with (
+            self.patch_sign_request,
+            self.patch_timeout,
+            self.assertRaises(
+                sd_lock_utility.client.aiohttp.client.ClientConnectionError,
+            ),
         ):
             await sd_lock_utility.client.signed_fetch(self.test_session, "/test/path")
 
@@ -251,7 +255,10 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
     async def test_get_header_should_raise_with_no_header(self):
         """Test that get_header raises when no header is available."""
         self.mock_signed_fetch.return_value = None
-        with self.patch_signed_fetch, self.assertRaises(
-            sd_lock_utility.client.sd_lock_utility.exceptions.NoFileHeader
+        with (
+            self.patch_signed_fetch,
+            self.assertRaises(
+                sd_lock_utility.client.sd_lock_utility.exceptions.NoFileHeader
+            ),
         ):
             await sd_lock_utility.client.get_header(self.test_session, "test/file/path")

@@ -1,6 +1,5 @@
 """Common types for SD folder lock/unlock tool."""
 
-
 import os
 import typing
 

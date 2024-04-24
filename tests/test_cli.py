@@ -1,6 +1,5 @@
 """Test CLI functions."""
 
-
 import unittest
 import unittest.mock
 

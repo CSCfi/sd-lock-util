@@ -1,6 +1,5 @@
 """Common mockups for tests."""
 
-
 import types
 import unittest
 import unittest.mock

@@ -1,6 +1,5 @@
 """Functions for accessing openstack."""
 
-
 import asyncio
 import logging
 import os
@@ -189,9 +188,9 @@ async def get_container_objects_page(
         },
         params=params,
     ) as resp:
-        objects: list[
-            sd_lock_utility.types.OpenstackObjectListingItem
-        ] = await resp.json()
+        objects: list[sd_lock_utility.types.OpenstackObjectListingItem] = (
+            await resp.json()
+        )
         return [obj["name"] for obj in objects]
 
 

@@ -7,7 +7,7 @@ name = "sd-lock-utility"
 dynamic = ["version"]
 description = "CLI utility tool for SD Connect encrypted object storage."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 authors = [
     { name = "CSC Developers" },
@@ -17,8 +17,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Environment :: Console",
     "Topic :: Communications :: File Sharing",
 ]
@@ -45,14 +44,19 @@ test = [
 dev = [
     "pre-commit==3.7.0",
     "pyspelling==2.10",
-    "ruff==0.3.7",
+    "ruff==0.4.1",
     "types-aiofiles==23.2.0.20240403",
+]
+
+build = [
+    "pyinstaller==6.6.0",
 ]
 
 [project.scripts]
 sd-lock = "sd_lock_utility.cli:lock"
 sd-unlock = "sd_lock_utility.cli:unlock"
 sd-pubkey = "sd_lock_utility.cli:pubkey"
+sd-lock-util = "sd_lock_utility.cli:wrap"
 
 [project.urls]
 Source = "https://github.com/CSCfi/sd-lock-util"
@@ -63,17 +67,17 @@ path = "sd_lock_utility/__init__.py"
 
 [tool.black]
 line-length = 90
-target-version = ['py310']
+target-version = ['py312']
 
 [tool.isort]
 atomic = true
 profile = "black"
 line_length = 90
-py_version=310
+py_version=312
 
 [tool.ruff]
 line-length = 90
-target-version = "py310"
+target-version = "py312"
 
 # https://beta.ruff.rs/docs/rules/
 select = [

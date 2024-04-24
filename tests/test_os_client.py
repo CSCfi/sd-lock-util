@@ -1,6 +1,5 @@
 """Test functions in the os_client module."""
 
-
 import types
 import unittest
 import unittest.mock
@@ -174,8 +173,11 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
     async def test_openstack_check_container_raise_with_no_container_access(self):
         """Test that openstack_check_container raises if no access."""
         self.mock_response.status = 403
-        with self.time_patch, self.assertRaises(
-            sd_lock_utility.os_client.sd_lock_utility.exceptions.NoContainerAccess
+        with (
+            self.time_patch,
+            self.assertRaises(
+                sd_lock_utility.os_client.sd_lock_utility.exceptions.NoContainerAccess
+            ),
         ):
             await sd_lock_utility.os_client.openstack_check_container(
                 self.test_session, "test-container"
@@ -233,8 +235,12 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             ),
         )
 
-        with self.time_patch, patch_check_container, self.assertRaises(
-            sd_lock_utility.os_client.sd_lock_utility.exceptions.ContainerCreationFailed
+        with (
+            self.time_patch,
+            patch_check_container,
+            self.assertRaises(
+                sd_lock_utility.os_client.sd_lock_utility.exceptions.ContainerCreationFailed
+            ),
         ):
             await sd_lock_utility.os_client.openstack_create_container(self.test_session)
 
