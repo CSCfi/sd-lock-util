@@ -1,6 +1,5 @@
 """SD Connect vault proxy API client."""
 
-
 import base64
 import hmac
 import logging
@@ -49,41 +48,53 @@ async def open_session(
         "client": aiohttp.ClientSession(
             raise_for_status=True,
         ),
-        "token": token.encode("utf-8")
-        if token
-        else os.environ.get(
-            "SD_CONNECT_API_TOKEN",
-            "",
-        ).encode("utf-8"),
-        "address": address
-        if address
-        else os.environ.get(
-            "SD_CONNECT_API_ADDRESS",
-            "",
+        "token": (
+            token.encode("utf-8")
+            if token
+            else os.environ.get(
+                "SD_CONNECT_API_TOKEN",
+                "",
+            ).encode("utf-8")
         ),
-        "openstack_project_id": project_id
-        if project_id
-        else os.environ.get(
-            "OS_PROJECT_ID",
-            "",
+        "address": (
+            address
+            if address
+            else os.environ.get(
+                "SD_CONNECT_API_ADDRESS",
+                "",
+            )
         ),
-        "openstack_project_name": project_name
-        if project_name
-        else os.environ.get(
-            "OS_PROJECT_NAME",
-            "",
+        "openstack_project_id": (
+            project_id
+            if project_id
+            else os.environ.get(
+                "OS_PROJECT_ID",
+                "",
+            )
         ),
-        "openstack_auth_url": os_auth_url
-        if os_auth_url
-        else os.environ.get(
-            "OS_AUTH_URL",
-            "",
+        "openstack_project_name": (
+            project_name
+            if project_name
+            else os.environ.get(
+                "OS_PROJECT_NAME",
+                "",
+            )
         ),
-        "container": container
-        if container
-        else os.environ.get(
-            "UPLOAD_CONTAINER",
-            "",
+        "openstack_auth_url": (
+            os_auth_url
+            if os_auth_url
+            else os.environ.get(
+                "OS_AUTH_URL",
+                "",
+            )
+        ),
+        "container": (
+            container
+            if container
+            else os.environ.get(
+                "UPLOAD_CONTAINER",
+                "",
+            )
         ),
         "openstack_password": os.environ.get("OS_PASSWORD", ""),
         "openstack_user_domain": os.environ.get(
