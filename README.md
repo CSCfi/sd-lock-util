@@ -14,7 +14,7 @@ work with most datasets that one can encounter.
 
 ### Requirements
 
-Python 3.10+ is required.
+Python 3.12+ is required.
 
 - The dependencies mentioned in `requirements.txt`
 - Information required for access to CSC Allas and SD Connect
