@@ -1,5 +1,6 @@
 """Test functions in the os_client module."""
 
+import pathlib
 import types
 import unittest
 import unittest.mock
@@ -113,17 +114,6 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
 
     async def test_slice_encrtypted_segment(self):
         """Test slice_encrypted_segment should open and slice a file."""
-        mock_os_stat = unittest.mock.Mock(
-            return_value=types.SimpleNamespace(
-                **{
-                    "st_size": 100000,
-                }
-            )
-        )
-        patch_os_stat = unittest.mock.patch(
-            "sd_lock_utility.os_client.os.stat", mock_os_stat
-        )
-
         mock_file_content = [b"", b"1", b"2", b"3", b"4", b"5"]
 
         async def mock_file_read(len: int) -> bytes:
@@ -142,7 +132,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
 
         mock_urandom = unittest.mock.Mock(return_value=b"123456789012")
         patch_urandom = unittest.mock.patch(
-            "sd_lock_utility.os_client.os.urandom", mock_urandom
+            "sd_lock_utility.os_client.secrets.token_bytes", mock_urandom
         )
 
         mock_encrypt = unittest.mock.Mock(return_value=b"test-encrypted")
@@ -152,19 +142,20 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
         )
 
         ret = []
-        with patch_os_stat, patch_aiofiles, patch_urandom, patch_encrypt:
+        with patch_aiofiles, patch_urandom, patch_encrypt:
             async for seg in sd_lock_utility.os_client.slice_encrypted_segment(
                 {"progress": True},
+                self.test_session,
                 {
                     "path": "test-path",
                     "localpath": "test-path",
                     "session_key": "test-key",
                 },
                 0,
+                None,
             ):
                 ret.append(seg)
 
-        mock_os_stat.assert_called_once_with("test-path")
         mock_file.seek.assert_awaited_once_with(0)
         mock_urandom.assert_called_with(12)
         mock_encrypt.assert_called()
@@ -205,7 +196,9 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
         )
 
         with patch_check_container, self.time_patch:
-            await sd_lock_utility.os_client.openstack_create_container(self.test_session)
+            await sd_lock_utility.os_client.openstack_create_container(
+                self.test_session, {"debug": False}
+            )
         self.test_session["client"].put.assert_any_call(
             "http://openstack-test-storage-endpoint/test-container",
             **{
@@ -242,7 +235,9 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                 sd_lock_utility.os_client.sd_lock_utility.exceptions.ContainerCreationFailed
             ),
         ):
-            await sd_lock_utility.os_client.openstack_create_container(self.test_session)
+            await sd_lock_utility.os_client.openstack_create_container(
+                self.test_session, {"debug": False}
+            )
 
     async def test_openstack_upload_encrypted_segment(self):
         """Test that openstack_upload_encrypted_segment calls put."""
@@ -257,7 +252,14 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
 
         with patch_openstack_create_container, patch_slice_segment, self.time_patch:
             await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
-                {}, self.test_session, {"path": "test/path"}, 0, "test-uuid"
+                {
+                    "debug": False,
+                },
+                self.test_session,
+                {"path": "test/path"},
+                0,
+                "test-uuid",
+                None,
             )
 
         self.test_session["client"].put.assert_called_once_with(
@@ -267,7 +269,15 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                 "headers": {"X-Auth-Token": "test-openstack-token"},
             },
         )
-        mock_slice_segment.assert_called_once_with({}, {"path": "test/path"}, 0)
+        mock_slice_segment.assert_called_once_with(
+            {
+                "debug": False,
+            },
+            self.test_session,
+            {"path": "test/path"},
+            0,
+            None,
+        )
 
     async def test_openstack_create_manifest(self):
         """Test openstack_create_manifest should create a manifest."""
@@ -322,7 +332,14 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             ret = await sd_lock_utility.os_client.get_container_objects(self.test_session)
 
         self.assertEqual(
-            ret, [("", [], ["test-object-3", "test-object-2", "test-object-1"])]
+            ret,
+            [
+                (
+                    pathlib.Path("."),
+                    [],
+                    ["test-object-3", "test-object-2", "test-object-1"],
+                )
+            ],
         )
 
     async def test_openstack_download_decrypted_object(self):
@@ -355,7 +372,34 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
 
         with patch_aiofiles, self.time_patch, patch_encrypt:
             await sd_lock_utility.os_client.openstack_download_decrypted_object(
-                {"progress": True},
+                self.mock_response.content,
+                {"progress": False},
+                self.test_session,
+                {
+                    "path": "test/file",
+                    "localpath": "test/file",
+                    "session_key": "test-key",
+                },
+                None,
+            )
+
+        mock_encrypt.assert_any_call(b"a", None, b"123456789012", "test-key")
+        mock_encrypt.assert_any_call(b"b", None, b"123456789012", "test-key")
+        mock_encrypt.assert_any_call(b"c", None, b"123456789012", "test-key")
+        mock_file.write.assert_any_call(b"a")
+
+    async def test_openstack_download_decrypted_object_wrap_progress(self):
+        """Test correctly downloading an encrypted object without progress wrap."""
+        mock_download = unittest.mock.AsyncMock()
+        patch_download = unittest.mock.patch(
+            "sd_lock_utility.os_client.openstack_download_decrypted_object", mock_download
+        )
+
+        self.mock_response.headers["Content-Length"] = 123
+
+        with self.time_patch, patch_download:
+            ret = await sd_lock_utility.os_client.openstack_download_decrypted_object_wrap_progress(
+                {"progress": False, "debug": False},
                 self.test_session,
                 {
                     "path": "test/file",
@@ -364,11 +408,16 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                 },
             )
 
+            self.assertEqual(ret, 0)
+
         self.test_session["client"].get.assert_called_once_with(
             "http://openstack-test-storage-endpoint/test-container/test/file.c4gh",
             **{"headers": {"X-Auth-Token": "test-openstack-token"}},
         )
-        mock_encrypt.assert_any_call(b"a", None, b"123456789012", "test-key")
-        mock_encrypt.assert_any_call(b"b", None, b"123456789012", "test-key")
-        mock_encrypt.assert_any_call(b"c", None, b"123456789012", "test-key")
-        mock_file.write.assert_any_call(b"a")
+        mock_download.assert_called_once_with(
+            self.mock_response.content,
+            {"progress": False, "debug": False},
+            self.test_session,
+            {"path": "test/file", "localpath": "test/file", "session_key": "test-key"},
+            None,
+        )

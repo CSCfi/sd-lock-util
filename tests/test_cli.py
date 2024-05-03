@@ -1,5 +1,6 @@
 """Test CLI functions."""
 
+import pathlib
 import unittest
 import unittest.mock
 
@@ -25,10 +26,12 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock = unittest.mock.Mock(return_value=0)
         self.patch_lock = unittest.mock.patch(
-            "sd_lock_utility.cli.sd_lock_utility.lock.lock", self.mock_lock
+            "sd_lock_utility.cli.sd_lock_utility.lock.wrap_lock_exceptions",
+            self.mock_lock,
         )
         self.patch_unlock = unittest.mock.patch(
-            "sd_lock_utility.cli.sd_lock_utility.unlock.unlock", self.mock_lock
+            "sd_lock_utility.cli.sd_lock_utility.unlock.wrap_unlock_exceptions",
+            self.mock_lock,
         )
         self.patch_pubkey = unittest.mock.patch(
             "sd_lock_utility.cli.sd_lock_utility.lock.get_pubkey", self.mock_lock
@@ -67,7 +70,7 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock.assert_called_once_with(
             {
-                "path": "test-path",
+                "path": pathlib.Path("test-path"),
                 "container": "test-container",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",
@@ -79,7 +82,9 @@ class TestCliFunctions(unittest.TestCase):
                 "sd_api_token": "test-token",
                 "prefix": "",
                 "no_check_certificate": True,
-                "progress": True,
+                "progress": False,
+                "debug": True,
+                "verbose": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -108,7 +113,7 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock.assert_called_once_with(
             {
-                "path": "",
+                "path": pathlib.Path("."),
                 "container": "placeholder",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",
@@ -120,6 +125,8 @@ class TestCliFunctions(unittest.TestCase):
                 "prefix": "",
                 "no_check_certificate": True,
                 "progress": False,
+                "debug": False,
+                "verbose": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -157,7 +164,8 @@ class TestCliFunctions(unittest.TestCase):
 
         self.mock_lock.assert_called_once_with(
             {
-                "path": "test-path",
+                "path": pathlib.Path("test-path"),
+                "no_path": False,
                 "container": "test-container",
                 "project_id": "test-project-id",
                 "project_name": "test-project-name",
@@ -169,7 +177,9 @@ class TestCliFunctions(unittest.TestCase):
                 "sd_api_token": "test-token",
                 "prefix": "",
                 "no_check_certificate": True,
-                "progress": True,
+                "progress": False,
+                "debug": True,
+                "verbose": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)

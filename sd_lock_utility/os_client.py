@@ -1,19 +1,20 @@
 """Functions for accessing openstack."""
 
 import asyncio
-import logging
-import os
+import pathlib
+import secrets
 import time
 import typing
 
 import aiofiles
+import aiohttp
+import click
 import nacl.bindings
 import nacl.exceptions
 
+import sd_lock_utility.common
 import sd_lock_utility.exceptions
 import sd_lock_utility.types
-
-LOGGER = logging.getLogger("sd-lock-util")
 
 
 async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> str:
@@ -22,10 +23,10 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
         not session["openstack_token"]
         or session["openstack_token_valid_until"] < time.time()
     ):
-        LOGGER.debug("Token does not exist or is expired, refreshing...")
-
         # The token will be valid for 8 hours (28800 seconds)
         session["openstack_token_valid_until"] = time.time() + 28800
+        if session["client"] is None:
+            raise sd_lock_utility.exceptions.NoClient
         async with session["client"].post(
             f"{session['openstack_auth_url']}/auth/tokens",
             json={
@@ -62,44 +63,47 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
                     lambda i: i["type"] == "object-store", token_meta["token"]["catalog"]
                 )
             ][0]["url"]
-            LOGGER.debug(
-                f"Using {session['openstack_object_storage_endpoint']} as the object storage endpoint."
-            )
 
     return session["openstack_token"]
 
 
 async def slice_encrypted_segment(
     opts: sd_lock_utility.types.SDLockOptions,
+    session: sd_lock_utility.types.SDAPISession,
     file: sd_lock_utility.types.SDUtilFile,
     order: int,
+    bar: typing.Any,
 ) -> typing.AsyncGenerator[bytes, None]:
     """Slice a file into an async generator of encrypted chunks."""
-    size: int = os.stat(file["localpath"]).st_size
     done: int = 5366415360 * order
-    async with aiofiles.open(file["localpath"], "rb") as f:
-        await f.seek(done)
-        for _ in range(0, 81885):
-            chunk = await f.read(65536)
-            if not chunk:
-                return
-            if opts["progress"]:
-                print(f"{file['localpath']}        {done}/{size}", end="\r")
-            nonce = os.urandom(12)
-            segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
-                chunk,
-                None,
-                nonce,
-                file["session_key"],
-            )
-            done += len(chunk)
-            yield nonce + segment
+    try:
+        async with aiofiles.open(file["localpath"], "rb") as f:
+            await f.seek(done)
+            for _ in range(0, 81885):
+                chunk = await f.read(65536)
+                if not chunk:
+                    return
+                nonce = secrets.token_bytes(12)
+                segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
+                    chunk,
+                    None,
+                    nonce,
+                    file["session_key"],
+                )
+                done += len(chunk)
+                if bar:
+                    bar.update(len(chunk))
+                yield nonce + segment
+    except asyncio.CancelledError:
+        raise StopAsyncIteration
 
 
 async def openstack_check_container(
     session: sd_lock_utility.types.SDAPISession, container: str
 ) -> None:
     """Check the container can be accessed."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
     async with session["client"].head(
         f"{session['openstack_object_storage_endpoint']}/{container}",
         headers={
@@ -112,12 +116,23 @@ async def openstack_check_container(
             raise sd_lock_utility.exceptions.NoContainerAccess
 
 
-async def openstack_create_container(session: sd_lock_utility.types.SDAPISession) -> None:
+async def openstack_create_container(
+    session: sd_lock_utility.types.SDAPISession,
+    opts: sd_lock_utility.types.SDCommandBaseOptions,
+) -> None:
     """Ensure the upload container exists."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
     for container in {session["container"], f"{session['container']}_segments"}:
         try:
+            sd_lock_utility.common.conditional_echo_debug(
+                opts, f"Checking if container {container} exists"
+            )
             await openstack_check_container(session, container)
         except sd_lock_utility.exceptions.NoContainerAccess:
+            sd_lock_utility.common.conditional_echo_debug(
+                opts, f"Could not access container {container}, trying to create"
+            )
             async with session["client"].put(
                 f"{session['openstack_object_storage_endpoint']}/{container}",
                 headers={
@@ -135,18 +150,26 @@ async def openstack_upload_encrypted_segment(
     file: sd_lock_utility.types.SDUtilFile,
     order: int,
     uuid: str,
+    bar: typing.Any,
 ) -> None:
     """Encrypt and upload a segment to object storage."""
-    await openstack_create_container(session)
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
 
+    await openstack_create_container(session, opts)
+
+    sd_lock_utility.common.conditional_echo_debug(
+        opts,
+        f"Uploading encrypted file {file['path']}.c4gh to {session['container']}_segments, using {uuid} as segment identifier",
+    )
     async with session["client"].put(
         f"{session['openstack_object_storage_endpoint']}/{session['container']}_segments/{file['path']}.c4gh/{uuid}/{(order + 1):08d}",
-        data=slice_encrypted_segment(opts, file, order),
+        data=slice_encrypted_segment(opts, session, file, order, bar),
         headers={
             "X-Auth-Token": await openstack_get_token(session),
         },
-    ) as resp:
-        LOGGER.debug(f"File {file['path']} segment {order} return was {resp}")
+    ):
+        pass
 
 
 async def openstack_create_manifest(
@@ -155,6 +178,9 @@ async def openstack_create_manifest(
     uuid: str,
 ) -> None:
     """Create encrypted file manifest."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
     async with session["client"].put(
         f"{session['openstack_object_storage_endpoint']}/{session['container']}/{file['path']}.c4gh",
         data=b"",
@@ -163,7 +189,7 @@ async def openstack_create_manifest(
             "X-Object-Manifest": f"{session['container']}_segments/{file['path']}.c4gh/{uuid}/",
             "Content-Length": "0",
         },
-    ) as _:
+    ):
         pass
 
 
@@ -173,6 +199,9 @@ async def get_container_objects_page(
     prefix: str = "",
 ) -> list[str]:
     """Get a single page of the container object listing."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
     params = {
         "format": "json",
     }
@@ -197,7 +226,7 @@ async def get_container_objects_page(
 async def get_container_objects(
     session: sd_lock_utility.types.SDAPISession,
     prefix: str = "",
-) -> list[tuple[str, list[str], list[str]]]:
+) -> list[tuple[pathlib.Path, list[str], list[str]]]:
     """Get the contents of a container in object storage."""
     ret: list[str] = []
 
@@ -206,41 +235,31 @@ async def get_container_objects(
         ret = ret + page
         page = await get_container_objects_page(session, marker=page[-1], prefix=prefix)
 
-    LOGGER.debug(f"Object listing in container {session['container']}: {ret}")
-
-    return [("", [], ret)]
+    return [(pathlib.Path("."), [], ret)]
 
 
 async def openstack_download_decrypted_object(
+    body: aiohttp.StreamReader,
     opts: sd_lock_utility.types.SDUnlockOptions,
     session: sd_lock_utility.types.SDAPISession,
     file: sd_lock_utility.types.SDUtilFile,
+    bar: typing.Any,
 ) -> None:
-    """Download and decrypt a segment from object storage."""
-    async with session["client"].get(
-        f"{session['openstack_object_storage_endpoint']}/{session['container']}/{file['path']}.c4gh",
-        headers={
-            "X-Auth-Token": await openstack_get_token(session),
-        },
-    ) as resp:
-        size: int = int(resp.headers["Content-Length"])
-        done: int = 0
-        async with aiofiles.open(file["localpath"], "wb") as out_f:
-            while True:
-                if opts["progress"]:
-                    print(f"{file['localpath']}        {done}/{size}", end="\r")
+    """Consume and decrypt a segment from object storage."""
+    async with aiofiles.open(file["localpath"], "wb") as out_f:
+        while True:
+            try:
+                chunk = await body.readexactly(65564)
+            except asyncio.IncompleteReadError as incomplete:
+                chunk = incomplete.partial
 
-                try:
-                    chunk = await resp.content.readexactly(65564)
-                except asyncio.IncompleteReadError as incomplete:
-                    chunk = incomplete.partial
+            if not chunk:
+                break
 
-                if not chunk:
-                    return
+            nonce = chunk[:12]
+            content = chunk[12:]
 
-                nonce = chunk[:12]
-                content = chunk[12:]
-
+            try:
                 await out_f.write(
                     nacl.bindings.crypto_aead_chacha20poly1305_ietf_decrypt(
                         content,
@@ -249,4 +268,45 @@ async def openstack_download_decrypted_object(
                         file["session_key"],
                     )
                 )
-                done += len(chunk)
+            except nacl.exceptions.CryptoError:
+                click.echo(f"Could not decrypt {file['path']}.c4gh", err=True)
+                break
+
+            if bar:
+                bar.update(len(chunk))
+
+
+async def openstack_download_decrypted_object_wrap_progress(
+    opts: sd_lock_utility.types.SDUnlockOptions,
+    session: sd_lock_utility.types.SDAPISession,
+    file: sd_lock_utility.types.SDUtilFile,
+) -> int:
+    """Download and decrypt an object from storage with optional progress bar."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Downloading and decrypting file {file['path']}"
+    )
+    async with session["client"].get(
+        f"{session['openstack_object_storage_endpoint']}/{session['container']}/{file['path']}.c4gh",
+        headers={
+            "X-Auth-Token": await openstack_get_token(session),
+        },
+    ) as resp:
+        size: int = int(resp.headers["Content-Length"])
+
+        if opts["progress"]:
+            # Can't annotate progress bar without using click internal vars
+            with click.progressbar(  # type: ignore
+                length=size, label=f"Downloading and decrypting {file['path']}.c4gh"
+            ) as bar:
+                await openstack_download_decrypted_object(
+                    resp.content, opts, session, file, bar
+                )
+        else:
+            await openstack_download_decrypted_object(
+                resp.content, opts, session, file, None
+            )
+
+    return 0

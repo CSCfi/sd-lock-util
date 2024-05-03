@@ -1,6 +1,7 @@
 """Common types for SD folder lock/unlock tool."""
 
 import os
+import pathlib
 import typing
 
 import aiohttp
@@ -18,7 +19,7 @@ MAX_SIMULTANEOUS_UPLOADS: int = int(
 class SDAPISession(typing.TypedDict):
     """Type definition for session variables."""
 
-    client: aiohttp.ClientSession
+    client: aiohttp.client.ClientSession | None
     token: bytes
     address: str
     openstack_project_id: str
@@ -55,10 +56,12 @@ class SDCommandBaseOptions(typing.TypedDict):
     sd_connect_address: str
     sd_api_token: str
     prefix: str
-    path: str
+    path: pathlib.Path
     no_preserve_original: bool
     no_check_certificate: bool
     progress: bool
+    debug: bool
+    verbose: bool
 
 
 class SDLockOptions(SDCommandBaseOptions):
@@ -71,6 +74,7 @@ class SDUnlockOptions(SDCommandBaseOptions):
     """Additional type definitions for unlock command options."""
 
     no_content_download: bool
+    no_path: bool
 
 
 class SDUtilFile(typing.TypedDict):
@@ -78,8 +82,8 @@ class SDUtilFile(typing.TypedDict):
 
     # Note that the filename and path always point to the plain-text file,
     # so the encrypted file identifier needs to be added separately.
-    path: str
-    localpath: str
+    path: pathlib.Path
+    localpath: pathlib.Path
     session_key: bytes
 
 

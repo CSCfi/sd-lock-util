@@ -39,3 +39,15 @@ class NoHeaderPushAccess(Exception):
 
 class NoFileHeader(Exception):
     """Could not find a file header."""
+
+
+class HandleClientExceptions(Exception):
+    """Class for gracefully handling exceptions generating by the client."""
+
+
+class SkipIteratorCancel(Exception):
+    """Replace iterator cancellation with another exception to prevent graceful cancel from running."""
+
+
+class NoClient(Exception):
+    """For some reason the session didn't have a ClientSession available."""

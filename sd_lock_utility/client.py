@@ -2,8 +2,8 @@
 
 import base64
 import hmac
-import logging
 import os
+import pathlib
 import time
 import typing
 
@@ -11,8 +11,6 @@ import aiohttp
 
 import sd_lock_utility.exceptions
 import sd_lock_utility.types
-
-LOGGER = logging.getLogger("sd-lock-util")
 
 
 def _sign_api_request(
@@ -44,10 +42,16 @@ async def open_session(
     no_check_certificate: bool = False,
 ) -> sd_lock_utility.types.SDAPISession:
     """Open a new session for accessing SD API."""
+    # Use a default timeout of 28800 to match the token lifetime.
+    aiohttp.ClientTimeout(
+        total=1,
+        connect=240,
+        sock_connect=60,
+        sock_read=600,
+    )
+
     ret: sd_lock_utility.types.SDAPISession = {
-        "client": aiohttp.ClientSession(
-            raise_for_status=True,
-        ),
+        "client": None,
         "token": (
             token.encode("utf-8")
             if token
@@ -133,16 +137,6 @@ async def open_session(
     if not ret["container"]:
         raise sd_lock_utility.exceptions.NoContainer
 
-    LOGGER.debug(f"SD Connect client session: {ret}")
-
-    return ret
-
-
-async def kill_session(session: sd_lock_utility.types.SDAPISession, ret: int) -> int:
-    """Gracefully close the session."""
-    LOGGER.debug("Gracefully closing the SD Connect client session.")
-
-    await session["client"].close()
     return ret
 
 
@@ -167,20 +161,17 @@ async def signed_fetch(
     if params is not None:
         signature.update(params)  # type: ignore
 
-    try:
-        async with session["client"].request(
-            method=method,
-            url=url,
-            params=signature,
-            json=json_data,
-            data=data,
-            timeout=aiohttp.client.ClientTimeout(total=timeout),
-            ssl=False if session["no_check_certificate"] else None,
-        ) as resp:
-            if resp.status == 200:
-                return await resp.text()
-    except aiohttp.client.InvalidURL:
-        print("Invalid URL")
+    async with session["client"].request(  # type: ignore
+        method=method,
+        url=url,
+        params=signature,
+        json=json_data,
+        data=data,
+        timeout=aiohttp.client.ClientTimeout(total=timeout),
+        ssl=False if session["no_check_certificate"] else None,
+    ) as resp:
+        if resp.status == 200:
+            return await resp.text()
 
     return None
 
@@ -218,7 +209,7 @@ async def get_public_key(session: sd_lock_utility.types.SDAPISession) -> str:
 
 
 async def push_header(
-    session: sd_lock_utility.types.SDAPISession, header: bytes, filepath: str
+    session: sd_lock_utility.types.SDAPISession, header: bytes, filepath: pathlib.Path
 ) -> None:
     """Push a file header to SD API."""
     await signed_fetch(
@@ -229,7 +220,9 @@ async def push_header(
     )
 
 
-async def get_header(session: sd_lock_utility.types.SDAPISession, filepath: str) -> bytes:
+async def get_header(
+    session: sd_lock_utility.types.SDAPISession, filepath: pathlib.Path
+) -> bytes:
     """Get a file header from SD API."""
     ret = await signed_fetch(
         session,

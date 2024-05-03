@@ -92,12 +92,6 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
         )
         self.assertEqual(ret["address"], self.test_parameters["address"])
 
-    async def test_kill_session_should_close_the_session(self):
-        """Test that kill_session kills the client session."""
-        ret = await sd_lock_utility.client.kill_session(self.test_session, 0)
-        self.assertEqual(ret, 0)
-        self.test_session["client"].close.assert_awaited_once()
-
     async def test_signed_fetch_should_succeed_updated_params(self):
         """Test that signed_fetch works with added parameters."""
         with self.patch_sign_request, self.patch_timeout:
@@ -139,11 +133,12 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
                 sd_lock_utility.client.aiohttp.client.InvalidURL("test-url"),
             )
         )
-        with self.patch_sign_request, self.patch_timeout:
-            ret = await sd_lock_utility.client.signed_fetch(
-                self.test_session, "/test/path"
-            )
-        self.assertIsNone(ret)
+        with (
+            self.patch_sign_request,
+            self.patch_timeout,
+            self.assertRaises(sd_lock_utility.client.aiohttp.client.InvalidURL),
+        ):
+            await sd_lock_utility.client.signed_fetch(self.test_session, "/test/path")
 
     async def test_signed_fetch_should_let_other_exceptions_bubble(self):
         """Test that signed_fetch bubbles through other exceptions."""
