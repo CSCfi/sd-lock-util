@@ -77,9 +77,7 @@ jobs:
       - name: Build sd-lock-util artifact Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          docker pull cscfi/pyinstaller
-          docker run --rm -v "${PWD}:/builder" cscfi/pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --hidden-import=_cffi_backend
-          sudo chown -R $USER:$GROUP dist/
+          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --hidden-import=_cffi_backend
       - name: Build sd-lock-util artifact macOS
         if: matrix.os == 'macOS-latest'
         run: |
