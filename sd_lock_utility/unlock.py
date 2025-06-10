@@ -222,6 +222,7 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
             address=opts["sd_connect_address"],
             project_id=opts["project_id"],
             project_name=opts["project_name"],
+            owner=opts["owner"],
             token=opts["sd_api_token"],
             os_auth_url=opts["openstack_auth_url"],
             no_check_certificate=opts["no_check_certificate"],
@@ -242,7 +243,9 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     exc: typing.Any = None
     ret = 0
     try:
-        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+        async with aiohttp.ClientSession(
+            raise_for_status=True,
+        ) as cs:
             session["client"] = cs
             ret = await unlock(opts, session)
         await asyncio.sleep(0.250)

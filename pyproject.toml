@@ -56,6 +56,7 @@ build = [
 sd-lock = "sd_lock_utility.cli:lock"
 sd-unlock = "sd_lock_utility.cli:unlock"
 sd-pubkey = "sd_lock_utility.cli:pubkey"
+sd-check-id = "sd_lock_utility.cli:idcheck"
 sd-lock-util = "sd_lock_utility.cli:wrap"
 
 [project.urls]
