@@ -13,6 +13,10 @@ class NoProject(Exception):
     """No project was provided."""
 
 
+class NoOwner(Exception):
+    """Provided owner project could not be used (missing mapping of id to name)."""
+
+
 class NoContainer(Exception):
     """No container was provided."""
 

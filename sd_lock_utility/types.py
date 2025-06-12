@@ -54,6 +54,7 @@ class SDCommandBaseOptions(typing.TypedDict):
     project_id: str
     project_name: str
     owner: str
+    owner_name: str
     openstack_auth_url: str
     sd_connect_address: str
     sd_api_token: str

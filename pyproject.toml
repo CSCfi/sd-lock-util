@@ -57,6 +57,8 @@ sd-lock = "sd_lock_utility.cli:lock"
 sd-unlock = "sd_lock_utility.cli:unlock"
 sd-pubkey = "sd_lock_utility.cli:pubkey"
 sd-check-id = "sd_lock_utility.cli:idcheck"
+sd-fix-header-permissions = "sd_lock_utility.cli:fix_header_permissions"
+sd-fix-missing-headers = "sd_lock_utility.cli:fix_missing_headers"
 sd-lock-util = "sd_lock_utility.cli:wrap"
 
 [project.urls]
