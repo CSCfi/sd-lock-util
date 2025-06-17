@@ -373,10 +373,13 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
         self.mock_signed_fetch.assert_awaited_once_with(
             self.test_session,
             "/cryptic/test-project-name/test-container",
-            json_data={
-                "name": "test-owner-name",
-                "id": "test-owner-id",
-            },
+            method="PUT",
+            json_data=[
+                {
+                    "name": "test-owner-name",
+                    "id": "test-owner-id",
+                }
+            ],
             prefix="/runner",
         )
 

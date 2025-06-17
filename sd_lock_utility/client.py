@@ -165,7 +165,7 @@ async def signed_fetch(
     prefix: str = "",
     method: str = "GET",
     params: None | typing.Dict[str, typing.Any] = None,
-    json_data: None | typing.Dict[str, typing.Any] = None,
+    json_data: None | typing.Dict[str, typing.Any] | typing.List[typing.Dict] = None,
     data: bytes | str | None = None,
     timeout: int = 60,
     duration: int = 3600,
@@ -355,9 +355,12 @@ async def share_folder_to_project(
     await signed_fetch(
         session,
         f"/cryptic/{session['openstack_project_name']}/{session['container']}",
-        json_data={
-            "name": session["owner_name"],
-            "id": session["owner"],
-        },
+        method="PUT",
+        json_data=[
+            {
+                "name": session["owner_name"],
+                "id": session["owner"],
+            }
+        ],
         prefix="/runner",
     )
