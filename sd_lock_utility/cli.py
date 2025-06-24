@@ -402,7 +402,7 @@ def fix_header_permissions(
     verbose: bool,
     debug: bool,
 ):
-    """Unlock a file or folder."""
+    """Grant the actual owner project access to the headers."""
     opts: sd_lock_utility.types.SDUnlockOptions = {
         "path": pathlib.Path("."),
         "no_path": True,
@@ -492,7 +492,7 @@ def fix_missing_headers(
     verbose: bool,
     debug: bool,
 ):
-    """Unlock a file or folder."""
+    """Retrieve the missing file headers from the uploading project."""
     opts: sd_lock_utility.types.SDUnlockOptions = {
         "path": pathlib.Path("."),
         "no_path": True,
