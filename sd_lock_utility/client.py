@@ -165,7 +165,7 @@ async def signed_fetch(
     prefix: str = "",
     method: str = "GET",
     params: None | typing.Dict[str, typing.Any] = None,
-    json_data: None | typing.Dict[str, typing.Any] = None,
+    json_data: None | typing.Dict[str, typing.Any] | typing.List[typing.Dict] = None,
     data: bytes | str | None = None,
     timeout: int = 60,
     duration: int = 3600,
@@ -341,3 +341,26 @@ async def get_shared_ids(
             session["owner_name"] = ""
 
     return ret
+
+
+async def share_folder_to_project(
+    session: sd_lock_utility.types.SDAPISession,
+):
+    """Share a folder to the receiver project."""
+    await get_shared_ids(session)
+
+    if not session["owner_name"]:
+        raise sd_lock_utility.exceptions.NoOwner
+
+    await signed_fetch(
+        session,
+        f"/cryptic/{session['openstack_project_name']}/{session['container']}",
+        method="PUT",
+        json_data=[
+            {
+                "name": session["owner_name"],
+                "id": session["owner"],
+            }
+        ],
+        prefix="/runner",
+    )

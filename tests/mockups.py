@@ -76,6 +76,12 @@ class SDLockUtilTestBase(unittest.IsolatedAsyncioTestCase):
             self.mock_signed_fetch,
         )
 
+        self.mock_shared_ids = unittest.mock.AsyncMock()
+        self.patch_shared_ids = unittest.mock.patch(
+            "sd_lock_utility.client.get_shared_ids",
+            self.mock_shared_ids,
+        )
+
         self.test_session: sd_lock_utility.client.sd_lock_utility.types.SDAPISession = {
             "client": types.SimpleNamespace(
                 **{

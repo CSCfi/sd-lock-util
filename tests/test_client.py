@@ -4,9 +4,11 @@ import unittest
 import unittest.mock
 import types
 import base64
+import json
 
 import sd_lock_utility.client
 
+import sd_lock_utility.exceptions
 import tests.mockups
 
 
@@ -266,3 +268,126 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
             ),
         ):
             await sd_lock_utility.client.get_header(self.test_session, "test/file/path")
+
+    # Tests for sd_lock_util.client:check_shared_status
+    async def test_check_shared_status_should_skip_if_no_owner(self):
+        """Test that share status check is skipped if there's an owner."""
+        self.test_session["owner"] = "test-owner"
+        with self.patch_signed_fetch:
+            await sd_lock_utility.client.check_shared_status(self.test_session)
+
+        self.mock_signed_fetch.assert_not_awaited()
+        self.assertEqual(self.test_session["owner"], "test-owner")
+
+    async def test_check_shared_status_finds_correct_bucket_from_listing(self):
+        """Test that shared status check matches owner and sets shared status."""
+        self.mock_signed_fetch.return_value = json.dumps(
+            [
+                {
+                    "container": "bogus-container-1",
+                    "owner": "bogus-owner",
+                },
+                {
+                    "container": "bogus-container-2",
+                    "owner": "bogus-owner",
+                },
+                {
+                    "container": "test-container",
+                    "owner": "test-owner",
+                },
+            ]
+        )
+
+        with self.patch_signed_fetch:
+            await sd_lock_utility.client.check_shared_status(self.test_session)
+
+        self.mock_signed_fetch.assert_awaited_once_with(
+            self.test_session,
+            "/access/test-project-id",
+            prefix="/sharing",
+        )
+        self.assertEqual(self.test_session["owner"], "test-owner")
+
+    async def test_check_shared_status_skips_on_failure(self):
+        """Test that a failed status check doesn't bubble an exception."""
+        self.mock_signed_fetch.return_value = "garbage_json[]]}q]$þı˝wj ̛œörkmg"
+
+        with self.patch_signed_fetch:
+            await sd_lock_utility.client.check_shared_status(self.test_session)
+
+        self.assertEqual(self.test_session["owner"], "")
+
+    # Tests for sd_lock_util.client:get_shared_ids
+    async def test_get_shared_ids_should_return_empty_with_no_owner(self):
+        """Test that fetching shared ids fails if no owner name is confiugred."""
+        ret = await sd_lock_utility.client.get_shared_ids(self.test_session)
+        self.assertEqual(ret["id"], "")
+        self.assertEqual(ret["name"], "")
+
+    async def test_get_shared_ids_should_skip_if_owner_name_is_configured(self):
+        """Test that fetching shared ids is skipped if ids are already present."""
+        self.test_session["owner_name"] = "test-owner"
+        ret = await sd_lock_utility.client.get_shared_ids(self.test_session)
+        self.assertEqual(ret["id"], "")
+        self.assertEqual(ret["name"], "")
+
+    async def test_get_shared_ids_should_set_owner_name(self):
+        """Test that fetching shared ids sets owner name in session."""
+        self.test_session["owner"] = "test-owner-id"
+        self.mock_signed_fetch.return_value = json.dumps(
+            {
+                "name": "test-owner-name",
+                "id": "test-owner-id",
+            }
+        )
+
+        with self.patch_signed_fetch:
+            ret = await sd_lock_utility.client.get_shared_ids(self.test_session)
+
+        self.assertEqual(ret["name"], "test-owner-name")
+        self.assertEqual(ret["id"], "test-owner-id")
+        self.assertEqual(self.test_session["owner_name"], "test-owner-name")
+        self.assertEqual(self.test_session["owner"], "test-owner-id")
+
+    async def test_get_shared_ids_should_return_empty_if_fetch_fails(self):
+        """Test that a failed id fetch doesn't bubble an exception."""
+        self.test_session["owner"] = "test-owner-id"
+        self.mock_signed_fetch.return_value = "garbage_json[]]}q]$þı˝wj ̛œörkmg"
+
+        with self.patch_signed_fetch:
+            ret = await sd_lock_utility.client.get_shared_ids(self.test_session)
+
+        self.assertEqual(ret["id"], "")
+        self.assertEqual(ret["name"], "")
+
+    # Tests for sd_lock_util.client:share_folder_to_project
+    async def test_folder_share_should_check_owner_and_call_share_endpoint(self):
+        """Test that folder is shared correctly using the sharing endpoint."""
+        self.test_session["owner_name"] = "test-owner-name"
+        self.test_session["owner"] = "test-owner-id"
+
+        with self.patch_signed_fetch, self.patch_shared_ids:
+            await sd_lock_utility.client.share_folder_to_project(self.test_session)
+
+        self.mock_shared_ids.assert_awaited_once_with(self.test_session)
+        self.mock_signed_fetch.assert_awaited_once_with(
+            self.test_session,
+            "/cryptic/test-project-name/test-container",
+            method="PUT",
+            json_data=[
+                {
+                    "name": "test-owner-name",
+                    "id": "test-owner-id",
+                }
+            ],
+            prefix="/runner",
+        )
+
+    async def test_folder_share_should_fail_if_no_owner_in_config(self):
+        """Test that folder share fails correctly when owner is not provided."""
+        with (
+            self.patch_signed_fetch,
+            self.patch_shared_ids,
+            self.assertRaises(sd_lock_utility.exceptions.NoOwner),
+        ):
+            await sd_lock_utility.client.share_folder_to_project(self.test_session)
