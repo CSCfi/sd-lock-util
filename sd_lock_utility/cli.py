@@ -49,11 +49,6 @@ import sd_lock_utility.unlock
     help="Don't check TLS certificate for authenticity. (develompent use only)",
 )
 @click.option(
-    "--no-check-certificate",
-    is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
-)
-@click.option(
     "--verbose",
     is_flag=True,
     help="Print more information.",
@@ -172,6 +167,68 @@ def pubkey(
     ret = 0
     try:
         ret = asyncio.run(sd_lock_utility.lock.get_pubkey(opts))
+    except KeyboardInterrupt:
+        ret = 0
+
+    sys.exit(ret)
+
+
+@click.command()
+@click.option(
+    "--project-id", default="", help="Project id of the project used in uploading."
+)
+@click.option(
+    "--project-name", default="", help="Project name of the project used in uploading."
+)
+@click.option(
+    "--sd-connect-address", default="", help="Address used when connecting to SD Connect."
+)
+@click.option(
+    "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
+)
+@click.option(
+    "--no-check-certificate",
+    is_flag=True,
+    help="Don't check TLS certificate for authenticity. (development use only)",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Print more information.",
+)
+@click.option("--debug", is_flag=True, help="Print debug information.")
+@click.argument("id")
+def idcheck(
+    id: str,
+    project_id: str,
+    project_name: str,
+    sd_connect_address: str,
+    sd_api_token: str,
+    no_check_certificate: bool,
+    verbose: bool,
+    debug: bool,
+) -> None:
+    """Fetch the project ID information from either share id or name."""
+    opts: sd_lock_utility.types.SDCommandBaseOptions = {
+        "container": "placeholder",
+        "project_id": project_id,
+        "project_name": project_name,
+        "owner": id,
+        "openstack_auth_url": "",
+        "sd_connect_address": sd_connect_address,
+        "sd_api_token": sd_api_token,
+        "prefix": "",
+        "path": pathlib.Path("."),
+        "no_preserve_original": False,
+        "no_check_certificate": no_check_certificate,
+        "progress": False,
+        "debug": debug,
+        "verbose": verbose,
+    }
+
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.lock.get_id(opts))
     except KeyboardInterrupt:
         ret = 0
 

@@ -110,4 +110,6 @@ class SDLockUtilTestBase(unittest.IsolatedAsyncioTestCase):
             "openstack_token_valid_until": 14213213,
             "container": "test-container",
             "no_check_certificate": True,
+            "owner": "",
+            "owner_name": "",
         }

@@ -184,6 +184,7 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             address=opts["sd_connect_address"],
             project_id=opts["project_id"],
             project_name=opts["project_name"],
+            owner=opts["owner"],
             token=opts["sd_api_token"],
             os_auth_url=opts["openstack_auth_url"],
             no_check_certificate=opts["no_check_certificate"],
@@ -259,6 +260,7 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
             address=opts["sd_connect_address"],
             project_id=opts["project_id"],
             project_name=opts["project_name"],
+            owner=opts["owner"],
             token=opts["sd_api_token"],
             os_auth_url=opts["openstack_auth_url"],
             no_check_certificate=opts["no_check_certificate"],
@@ -279,7 +281,9 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
     exc: typing.Any = None
     ret = 0
     try:
-        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+        async with aiohttp.ClientSession(
+            raise_for_status=True,
+        ) as cs:
             session["client"] = cs
             pubkey = await sd_lock_utility.client.get_public_key(session)
         await asyncio.sleep(0.250)
@@ -317,5 +321,79 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
     click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
     click.echo(pubkey)
     click.echo("-----END CRYPT4GH PUBLIC KEY-----")
+
+    return ret
+
+
+async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
+    """Map a project name to id or vice versa."""
+    try:
+        session = await sd_lock_utility.client.open_session(
+            container=opts["container"],
+            address=opts["sd_connect_address"],
+            project_id=opts["project_id"],
+            project_name=opts["project_name"],
+            owner=opts["owner"],
+            token=opts["sd_api_token"],
+            os_auth_url=opts["openstack_auth_url"],
+            no_check_certificate=opts["no_check_certificate"],
+        )
+    except sd_lock_utility.exceptions.NoToken:
+        click.echo("No API access token was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoAddress:
+        click.echo("No API address was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoProject:
+        click.echo("No Openstack project information was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoContainer:
+        click.echo("No container was provided for uploads.", err=True)
+        return 3
+
+    exc: typing.Any = None
+    ret = 0
+    try:
+        async with aiohttp.ClientSession(
+            raise_for_status=True,
+        ) as cs:
+            session["client"] = cs
+            ids = await sd_lock_utility.client.get_shared_ids(session)
+            if ids["name"]:
+                click.echo(ids)
+        await asyncio.sleep(0.250)
+    except asyncio.CancelledError:
+        click.echo("Received a keyboard interrupt, aborting...", err=True)
+        return 0
+    except aiohttp.ClientResponseError as cex:
+        if cex.status == 401 and not opts["debug"]:
+            click.echo("Authentication was not successful.", err=True)
+            click.echo(
+                "Check that your SD Connect token is still valid and Openstack credentials are correct.",
+                err=True,
+            )
+        elif cex.status == 404 and not opts["debug"]:
+            click.echo("The queried project does not exist in cache.", err=True)
+            click.echo(
+                "The project might not yet have logged in to SD Connect.", err=True
+            )
+        else:
+            exc = cex
+    finally:
+        if exc is not None:
+            click.echo("Program encountered an unhandled exception.", err=True)
+            click.echo(
+                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
+                err=True,
+            )
+            click.echo(
+                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
+                err=True,
+            )
+            click.echo("Exception details:", err=True)
+            click.echo(
+                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
+            )
+            raise exc
 
     return ret

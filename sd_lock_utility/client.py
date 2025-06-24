@@ -2,6 +2,7 @@
 
 import base64
 import hmac
+import json
 import os
 import pathlib
 import time
@@ -39,6 +40,8 @@ async def open_session(
     project_name: str = "",
     container: str = "",
     os_auth_url: str = "",
+    owner: str = "",
+    owner_name: str = "",
     no_check_certificate: bool = False,
 ) -> sd_lock_utility.types.SDAPISession:
     """Open a new session for accessing SD API."""
@@ -59,6 +62,22 @@ async def open_session(
                 "SD_CONNECT_API_TOKEN",
                 "",
             ).encode("utf-8")
+        ),
+        "owner": (
+            owner
+            if owner
+            else os.environ.get(
+                "SD_BUCKET_OWNER",
+                "",
+            )
+        ),
+        "owner_name": (
+            owner_name
+            if owner_name
+            else os.environ.get(
+                "SD_BUCKET_OWNER_NAME",
+                "",
+            )
         ),
         "address": (
             address
@@ -143,6 +162,7 @@ async def open_session(
 async def signed_fetch(
     session: sd_lock_utility.types.SDAPISession,
     path: str,
+    prefix: str = "",
     method: str = "GET",
     params: None | typing.Dict[str, typing.Any] = None,
     json_data: None | typing.Dict[str, typing.Any] = None,
@@ -151,7 +171,7 @@ async def signed_fetch(
     duration: int = 3600,
 ) -> str | None:
     """Wrap fetching with integrated error handling."""
-    url = session["address"] + path
+    url = session["address"] + prefix + path
     signature: sd_lock_utility.types.SDAPISignature = _sign_api_request(
         path,
         duration,
@@ -181,6 +201,7 @@ async def whitelist_key(session: sd_lock_utility.types.SDAPISession, key: bytes)
     await signed_fetch(
         session,
         f"/cryptic/{session['openstack_project_name']}/whitelist",
+        prefix="/runner",
         method="PUT",
         params={
             "flavor": "crypt4gh",
@@ -194,15 +215,30 @@ async def unlist_key(session: sd_lock_utility.types.SDAPISession) -> None:
     await signed_fetch(
         session,
         f"/cryptic/{session['openstack_project_name']}/whitelist",
+        prefix="/runner",
         method="DELETE",
     )
 
 
 async def get_public_key(session: sd_lock_utility.types.SDAPISession) -> str:
     """Get project public key from SD API for encryption."""
-    ret = await signed_fetch(
-        session, f"/cryptic/{session['openstack_project_name']}/keys"
-    )
+    await get_shared_ids(session)
+    if session["owner_name"]:
+        ret = await signed_fetch(
+            session,
+            f"/cryptic/{session['owner_name']}/keys",
+            params={
+                "for": session["openstack_project_name"],
+            },
+            prefix="/runner",
+        )
+    else:
+        ret = await signed_fetch(
+            session,
+            f"/cryptic/{session['openstack_project_name']}/keys",
+            prefix="/runner",
+        )
+
     if ret is not None:
         return ret
     return ""
@@ -212,9 +248,18 @@ async def push_header(
     session: sd_lock_utility.types.SDAPISession, header: bytes, filepath: pathlib.Path
 ) -> None:
     """Push a file header to SD API."""
+    await get_shared_ids(session)
     await signed_fetch(
         session,
         f"/header/{session['openstack_project_name']}/{session['container']}/{filepath}",
+        params=(
+            {
+                "owner": session["owner_name"],
+            }
+            if session["owner_name"]
+            else None
+        ),
+        prefix="/runner",
         method="PUT",
         data=header,
     )
@@ -224,10 +269,75 @@ async def get_header(
     session: sd_lock_utility.types.SDAPISession, filepath: pathlib.Path
 ) -> bytes:
     """Get a file header from SD API."""
+    await get_shared_ids(session)
     ret = await signed_fetch(
         session,
         f"/header/{session['openstack_project_name']}/{session['container']}/{filepath}",
+        params=(
+            {
+                "owner": session["owner_name"],
+            }
+            if session["owner_name"]
+            else None
+        ),
+        prefix="/runner",
     )
     if ret is not None:
         return base64.urlsafe_b64decode(ret)
     raise sd_lock_utility.exceptions.NoFileHeader
+
+
+async def check_shared_status(
+    session: sd_lock_utility.types.SDAPISession,
+):
+    """Check container share status and return prossible owner."""
+    if session["owner"]:
+        return
+
+    ret = await signed_fetch(
+        session,
+        f"/access/{session['openstack_project_id']}",
+        prefix="/sharing",
+    )
+
+    if ret is not None:
+        try:
+            parsed_access: list[sd_lock_utility.types.SharedBucketListingEntry] = (
+                json.loads(ret)
+            )
+            for access in parsed_access:
+                if access["container"] == session["container"]:
+                    session["owner"] = access["owner"]
+        except Exception:
+            session["owner"] = ""
+
+
+async def get_shared_ids(
+    session: sd_lock_utility.types.SDAPISession,
+) -> sd_lock_utility.types.SharedProjectId:
+    """Check container owner project name."""
+    ret: sd_lock_utility.types.SharedProjectId = {
+        "id": "",
+        "name": "",
+    }
+
+    if session["owner_name"]:
+        return ret
+
+    if not session["owner"]:
+        return ret
+
+    ids = await signed_fetch(
+        session,
+        f"/ids/{session['owner']}",
+        prefix="/sharing",
+    )
+
+    if ids is not None:
+        try:
+            ret = json.loads(ids)
+            session["owner_name"] = ret["name"]
+        except Exception:
+            session["owner_name"] = ""
+
+    return ret

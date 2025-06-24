@@ -182,6 +182,7 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
                     "flavor": "crypt4gh",
                 },
                 "data": "example-key-to-whitelist",
+                "prefix": "/runner",
             },
         )
 
@@ -195,6 +196,7 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
             "/cryptic/test-project-name/whitelist",
             **{
                 "method": "DELETE",
+                "prefix": "/runner",
             },
         )
 
@@ -206,7 +208,9 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
 
         self.assertEqual(ret, "test-public-key")
         self.mock_signed_fetch.assert_awaited_once_with(
-            self.test_session, "/cryptic/test-project-name/keys"
+            self.test_session,
+            "/cryptic/test-project-name/keys",
+            prefix="/runner",
         )
 
     async def test_get_public_key_returns_empty_with_no_key(self):
@@ -230,6 +234,8 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
             **{
                 "method": "PUT",
                 "data": b"test-header",
+                "params": None,
+                "prefix": "/runner",
             },
         )
 
@@ -243,7 +249,10 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
             )
 
         self.mock_signed_fetch.assert_awaited_once_with(
-            self.test_session, "/header/test-project-name/test-container/test/file/path"
+            self.test_session,
+            "/header/test-project-name/test-container/test/file/path",
+            params=None,
+            prefix="/runner",
         )
         self.assertEqual(ret, header)
 

@@ -21,6 +21,8 @@ class SDAPISession(typing.TypedDict):
 
     client: aiohttp.client.ClientSession | None
     token: bytes
+    owner: str
+    owner_name: str
     address: str
     openstack_project_id: str
     openstack_project_name: str
@@ -95,3 +97,18 @@ class OpenstackObjectListingItem(typing.TypedDict):
     bytes: int
     name: str
     content_type: str
+
+
+class SharedBucketListingEntry(typing.TypedDict):
+    """Type definitions for shared bucket entry."""
+
+    container: str
+    owner: str
+    sharingdate: str
+
+
+class SharedProjectId(typing.TypedDict):
+    """Type definitions for a shared project id mapping."""
+
+    id: str
+    name: str
