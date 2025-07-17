@@ -12,6 +12,7 @@ import click
 import nacl.bindings
 import nacl.exceptions
 
+import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.exceptions
 import sd_lock_utility.types
@@ -123,6 +124,14 @@ async def openstack_create_container(
     """Ensure the upload container exists."""
     if session["client"] is None:
         raise sd_lock_utility.exceptions.NoClient
+
+    await sd_lock_utility.client.check_shared_status(session)
+    if session["owner"]:
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, "Uploading to a shared container, skipping container creation."
+        )
+        return
+
     for container in {session["container"], f"{session['container']}_segments"}:
         try:
             sd_lock_utility.common.conditional_echo_debug(

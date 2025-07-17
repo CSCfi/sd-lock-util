@@ -13,6 +13,7 @@ import nacl.bindings
 import nacl.exceptions
 import nacl.public
 
+import sd_lock_utility.cli
 import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.os_client
@@ -76,6 +77,12 @@ async def unlock(
             opts, "Authenticating with Openstack."
         )
         await sd_lock_utility.os_client.openstack_get_token(session)
+
+    await sd_lock_utility.client.check_shared_status(session)
+    if session["owner"]:
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, "The files are in a shared container, accessing shared headers."
+        )
 
     # Get all files in the path
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
