@@ -79,6 +79,26 @@ async def lock(
     opts: sd_lock_utility.types.SDLockOptions, session: sd_lock_utility.types.SDAPISession
 ) -> int:
     """Lock an unencrypted folder."""
+    # Check container shared status before fetching the public key
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, "Checking if the bucket is shared before fetching public key."
+    )
+    await sd_lock_utility.client.check_shared_status(session)
+    if session["owner"]:
+        sd_lock_utility.common.conditional_echo_verbose(
+            opts, f"Bucket is owned by project {session['owner']}."
+        )
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, "Fetching matching owner name from id."
+        )
+        await sd_lock_utility.client.get_shared_ids(session)
+        if session["owner_name"]:
+            sd_lock_utility.common.conditional_echo_debug(
+                opts, f"Got owner name {session['owner_name']} for {session['owner']}"
+            )
+        else:
+            raise sd_lock_utility.exceptions.NoOwnerNameForSharedContainer
+
     # Get the public key used in uploading
     sd_lock_utility.common.conditional_echo_debug(
         opts, "Fetching public key for the upload operation"
@@ -87,6 +107,9 @@ async def lock(
     if not pubkey_str:
         raise sd_lock_utility.exceptions.NoKey
     pubkey = base64.urlsafe_b64decode(pubkey_str)
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Using the following public key for encryption: {pubkey_str}"
+    )
 
     # Get all files in the path
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
@@ -217,6 +240,13 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     except sd_lock_utility.exceptions.NoKey:
         click.echo("Could not access project public key for encryption.", err=True)
         click.echo("Check that you're using the correct project.", err=True)
+        return 4
+    except sd_lock_utility.exceptions.NoOwnerNameForSharedContainer:
+        click.echo("Could not fetch bucket owner name from API.", err=True)
+        click.echo("Ask the owner project to log in using SD Connect UI,", err=True)
+        click.echo("or provide the owner name parameter manually using", err=True)
+        click.echo("--owner-name flag.")
+        return 5
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
