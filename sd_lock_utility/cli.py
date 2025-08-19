@@ -50,6 +50,14 @@ import sd_lock_utility.unlock
     help="Don't check TLS certificate for authenticity. (develompent use only)",
 )
 @click.option(
+    "--s3",
+    is_flag=True,
+    help="Use s3 instead of swift.",
+)
+@click.option("--ec2-key", default="", help="EC2 key.")
+@click.option("--ec2-secret", default="", help="EC2 secret.")
+@click.option("--s3-endpoint-url", default="", help="S3 endpoint url.")
+@click.option(
     "--verbose",
     is_flag=True,
     help="Print more information.",
@@ -74,6 +82,10 @@ def lock(
     no_preserve_original: bool,
     no_check_certificate: bool,
     verbose: bool,
+    s3: bool,
+    ec2_key: str,
+    ec2_secret: str,
+    s3_endpoint_url: str,
     debug: bool,
     progress: bool,
 ) -> None:
@@ -104,6 +116,10 @@ def lock(
         "progress": progress if not debug else False,
         "debug": debug,
         "verbose": verbose,
+        "use_s3": s3,
+        "ec2_access_key": ec2_key,
+        "ec2_secret_key": ec2_secret,
+        "s3_endpoint_url": s3_endpoint_url,
     }
 
     ret = 0
@@ -168,6 +184,10 @@ def pubkey(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": "",
+        "ec2_secret_key": "",
+        "s3_endpoint_url": "",
     }
 
     ret = 0
@@ -231,6 +251,10 @@ def idcheck(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": "",
+        "ec2_secret_key": "",
+        "s3_endpoint_url": "",
     }
 
     ret = 0
@@ -285,6 +309,14 @@ def idcheck(
     help="Don't check TLS certificate for authenticity. (develompent use only)",
 )
 @click.option(
+    "--s3",
+    is_flag=True,
+    help="Use s3 instead of swift.",
+)
+@click.option("--ec2-key", default="", help="EC2 key.")
+@click.option("--ec2-secret", default="", help="EC2 secret.")
+@click.option("--s3-endpoint-url", default="", help="S3 endpoint url.")
+@click.option(
     "--verbose",
     is_flag=True,
     help="Print more information.",
@@ -307,6 +339,10 @@ def unlock(
     no_content_download: bool,
     no_preserve_original: bool,
     no_check_certificate: bool,
+    s3: bool,
+    ec2_key: str,
+    ec2_secret: str,
+    s3_endpoint_url: str,
     verbose: bool,
     debug: bool,
     progress: bool,
@@ -339,6 +375,10 @@ def unlock(
         "progress": progress if not debug else False,
         "debug": debug,
         "verbose": verbose,
+        "use_s3": s3,
+        "ec2_access_key": ec2_key,
+        "ec2_secret_key": ec2_secret,
+        "s3_endpoint_url": s3_endpoint_url,
     }
 
     ret = 0
@@ -421,6 +461,10 @@ def fix_header_permissions(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": "",
+        "ec2_secret_key": "",
+        "s3_endpoint_url": "",
     }
 
     ret = 0
@@ -511,6 +555,10 @@ def fix_missing_headers(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": "",
+        "ec2_secret_key": "",
+        "s3_endpoint_url": "",
     }
 
     ret = 0

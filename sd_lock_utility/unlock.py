@@ -5,6 +5,7 @@ import io
 import pathlib
 import typing
 
+import aioboto3
 import aiohttp
 import click
 import crypt4gh.header
@@ -17,6 +18,7 @@ import sd_lock_utility.cli
 import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.os_client
+import sd_lock_utility.s3_client
 import sd_lock_utility.types
 
 
@@ -93,10 +95,16 @@ async def unlock(
         sd_lock_utility.common.conditional_echo_verbose(
             opts, "Fetching a file listing from object storage..."
         )
-        files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(
-            session,
-            opts["prefix"],
-        )
+        if opts["use_s3"]:
+            files_to_decrypt = await sd_lock_utility.s3_client.s3_get_container_objects(
+                session,
+                opts["prefix"],
+            )
+        else:
+            files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(
+                session,
+                opts["prefix"],
+            )
     elif (opts["path"].is_file()) or (
         not opts["no_content_download"] and not opts["path"].exists()
     ):
@@ -193,9 +201,14 @@ async def unlock(
                 await process_file_unlock(session, opts, enfile, None)
         else:
             try:
-                await sd_lock_utility.os_client.openstack_download_decrypted_object_wrap_progress(
-                    opts, session, enfile
-                )
+                if opts["use_s3"]:
+                    await sd_lock_utility.s3_client.s3_download_decrypted_object_wrap_progress(
+                        opts, session, enfile
+                    )
+                else:
+                    await sd_lock_utility.os_client.openstack_download_decrypted_object_wrap_progress(
+                        opts, session, enfile
+                    )
             except nacl.exceptions.CryptoError:
                 click.echo(f"Could not decrypt {enfile['localpath']}.c4gh", err=True)
         sd_lock_utility.common.conditional_echo_verbose(
@@ -233,6 +246,10 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
             token=opts["sd_api_token"],
             os_auth_url=opts["openstack_auth_url"],
             no_check_certificate=opts["no_check_certificate"],
+            use_s3=opts["use_s3"],
+            ec2_access_key=opts["ec2_access_key"],
+            ec2_secret_key=opts["ec2_secret_key"],
+            s3_endpoint_url=opts["s3_endpoint_url"],
         )
     except sd_lock_utility.exceptions.NoToken:
         click.echo("No API access token was provided.", err=True)
@@ -246,6 +263,15 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
         return 3
+    except sd_lock_utility.exceptions.NoEc2Key:
+        click.echo("Using S3, but EC2 access key was not provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoEc2Secret:
+        click.echo("Using S3, but EC2 secret key was not provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoS3Address:
+        click.echo("Using S3, but S3 endpoint address was not provided.")
+        return 3
 
     exc: typing.Any = None
     ret = 0
@@ -254,7 +280,18 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
             raise_for_status=True,
         ) as cs:
             session["client"] = cs
-            ret = await unlock(opts, session)
+            if session["use_s3"]:
+                async with aioboto3.Session().client(
+                    service_name="s3",
+                    endpoint_url=session["s3_endpoint_url"],
+                    aws_access_key_id=session["ec2_access_key"],
+                    aws_secret_access_key=session["ec2_secret_key"],
+                    # region_name="REGION",
+                ) as s3:
+                    session["s3_client"] = s3
+                    ret = await unlock(opts, session)
+            else:
+                ret = await unlock(opts, session)
         await asyncio.sleep(0.250)
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)

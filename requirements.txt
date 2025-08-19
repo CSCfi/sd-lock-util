@@ -2,3 +2,4 @@ aiohttp==3.9.5
 click==8.1.7
 crypt4gh==1.6
 aiofiles==23.2.1
+aioboto3==13.1.1
