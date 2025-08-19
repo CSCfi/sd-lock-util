@@ -107,6 +107,9 @@ async def lock(
     if not pubkey_str:
         raise sd_lock_utility.exceptions.NoKey
     pubkey = base64.urlsafe_b64decode(pubkey_str)
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Using the following public key for encryption: {pubkey_str}"
+    )
 
     # Get all files in the path
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
