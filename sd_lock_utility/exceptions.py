@@ -21,6 +21,10 @@ class NoContainer(Exception):
     """No container was provided."""
 
 
+class NoOwnerNameForSharedContainer(Exception):
+    """No owner name found for shared bucket."""
+
+
 class ContainerCreationFailed(Exception):
     """Could not access or create the required container for upload."""
 
