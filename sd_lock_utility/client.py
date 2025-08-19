@@ -42,7 +42,11 @@ async def open_session(
     os_auth_url: str = "",
     owner: str = "",
     owner_name: str = "",
+    ec2_access_key: str = "",
+    ec2_secret_key: str = "",
+    s3_endpoint_url: str = "",
     no_check_certificate: bool = False,
+    use_s3: bool = False,
 ) -> sd_lock_utility.types.SDAPISession:
     """Open a new session for accessing SD API."""
     # Use a default timeout of 28800 to match the token lifetime.
@@ -55,6 +59,7 @@ async def open_session(
 
     ret: sd_lock_utility.types.SDAPISession = {
         "client": None,
+        "s3_client": None,
         "token": (
             token.encode("utf-8")
             if token
@@ -119,6 +124,30 @@ async def open_session(
                 "",
             )
         ),
+        "ec2_access_key": (
+            ec2_access_key
+            if ec2_access_key
+            else os.environ.get(
+                "EC2_ACCESS_KEY",
+                "",
+            )
+        ),
+        "ec2_secret_key": (
+            ec2_secret_key
+            if ec2_secret_key
+            else os.environ.get(
+                "EC2_SECRET_KEY",
+                "",
+            )
+        ),
+        "s3_endpoint_url": (
+            s3_endpoint_url
+            if s3_endpoint_url
+            else os.environ.get(
+                "S3_ENDPOINT_URL",
+                "",
+            )
+        ),
         "openstack_password": os.environ.get("OS_PASSWORD", ""),
         "openstack_user_domain": os.environ.get(
             "OS_USER_DOMAIN_NAME",
@@ -142,6 +171,7 @@ async def open_session(
         ),
         "no_check_certificate": no_check_certificate,
         "openstack_token_valid_until": 0.0,
+        "use_s3": use_s3,
     }
 
     if not ret["token"]:
@@ -155,6 +185,16 @@ async def open_session(
 
     if not ret["container"]:
         raise sd_lock_utility.exceptions.NoContainer
+
+    if ret["use_s3"]:
+        if not ret["ec2_access_key"]:
+            raise sd_lock_utility.exceptions.NoEc2Key
+
+        if not ret["ec2_secret_key"]:
+            raise sd_lock_utility.exceptions.NoEc2Secret
+
+        if not ret["s3_endpoint_url"]:
+            raise sd_lock_utility.exceptions.NoS3Address
 
     return ret
 

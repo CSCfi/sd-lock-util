@@ -59,3 +59,19 @@ class SkipIteratorCancel(Exception):
 
 class NoClient(Exception):
     """For some reason the session didn't have a ClientSession available."""
+
+
+class NoS3Client(Exception):
+    """For some reason the session didn't have a S3Client available."""
+
+
+class NoEc2Key(Exception):
+    """Using S3, but no EC2 key was provided."""
+
+
+class NoEc2Secret(Exception):
+    """Using S3, but no EC2 secret was provided."""
+
+
+class NoS3Address(Exception):
+    """USing S3, but no S3 address was provided."""

@@ -4,6 +4,7 @@ import os
 import pathlib
 import typing
 
+import types_aiobotocore_s3
 import aiohttp
 
 # SD lock/unlock utility constants
@@ -20,6 +21,7 @@ class SDAPISession(typing.TypedDict):
     """Type definition for session variables."""
 
     client: aiohttp.client.ClientSession | None
+    s3_client: types_aiobotocore_s3.Client | None
     token: bytes
     owner: str
     owner_name: str
@@ -36,6 +38,10 @@ class SDAPISession(typing.TypedDict):
     openstack_token_valid_until: float
     container: str
     no_check_certificate: bool
+    use_s3: bool
+    ec2_access_key: str
+    ec2_secret_key: str
+    s3_endpoint_url: str
 
 
 class SDAPISignature(typing.TypedDict, total=False):
@@ -65,6 +71,10 @@ class SDCommandBaseOptions(typing.TypedDict):
     progress: bool
     debug: bool
     verbose: bool
+    use_s3: bool
+    ec2_access_key: str
+    ec2_secret_key: str
+    s3_endpoint_url: str
 
 
 class SDLockOptions(SDCommandBaseOptions):
