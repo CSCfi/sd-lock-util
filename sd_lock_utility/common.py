@@ -19,3 +19,15 @@ def conditional_echo_debug(
     """Echo debug messages if debug level is configured."""
     if opts["debug"]:
         click.echo(message)
+
+
+def get_upload_project_scoped_endpoint(
+    session: sd_lock_utility.types.SDAPISession,
+) -> str:
+    """Get the correct endpoint for uploading."""
+    if session["owner"]:
+        return session["openstack_object_storage_endpoint"].replace(
+            session["openstack_project_id"],
+            session["owner"],
+        )
+    return session["openstack_object_storage_endpoint"]

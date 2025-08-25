@@ -247,10 +247,22 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
         )
         mock_slice_segment = unittest.mock.Mock(return_value="sliced_segment")
         patch_slice_segment = unittest.mock.patch(
-            "sd_lock_utility.os_client.slice_encrypted_segment", mock_slice_segment
+            "sd_lock_utility.os_client.slice_encrypted_segment",
+            mock_slice_segment,
         )
 
-        with patch_openstack_create_container, patch_slice_segment, self.time_patch:
+        mock_aiohttp_client_timeout = unittest.mock.Mock(return_value="mock_timeout")
+        patch_aiohttp_client_timeout = unittest.mock.patch(
+            "sd_lock_utility.os_client.aiohttp.ClientTimeout",
+            mock_aiohttp_client_timeout,
+        )
+
+        with (
+            patch_openstack_create_container,
+            patch_slice_segment,
+            self.time_patch,
+            patch_aiohttp_client_timeout,
+        ):
             await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
                 {
                     "debug": False,
@@ -267,6 +279,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             **{
                 "data": "sliced_segment",
                 "headers": {"X-Auth-Token": "test-openstack-token"},
+                "timeout": "mock_timeout",
             },
         )
         mock_slice_segment.assert_called_once_with(
@@ -278,6 +291,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             0,
             None,
         )
+        mock_aiohttp_client_timeout.assert_called_once_with(total=28800)
 
     async def test_openstack_create_manifest(self):
         """Test openstack_create_manifest should create a manifest."""
