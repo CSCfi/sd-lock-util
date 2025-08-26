@@ -171,12 +171,17 @@ async def openstack_upload_encrypted_segment(
         opts,
         f"Uploading encrypted file {file['path']}.c4gh to {session['container']}_segments, using {uuid} as segment identifier",
     )
+
+    # Pre-load token to ensure endpoints are defined before access
+    headers = {
+        "X-Auth-Token": await openstack_get_token(session),
+    }
+
     async with session["client"].put(
-        f"{session['openstack_object_storage_endpoint']}/{session['container']}_segments/{file['path']}.c4gh/{uuid}/{(order + 1):08d}",
+        f"{sd_lock_utility.common.get_upload_project_scoped_endpoint(session)}/{session['container']}_segments/{file['path']}.c4gh/{uuid}/{(order + 1):08d}",
         data=slice_encrypted_segment(opts, session, file, order, bar),
-        headers={
-            "X-Auth-Token": await openstack_get_token(session),
-        },
+        headers=headers,
+        timeout=aiohttp.ClientTimeout(total=28800),
     ):
         pass
 
@@ -190,14 +195,17 @@ async def openstack_create_manifest(
     if session["client"] is None:
         raise sd_lock_utility.exceptions.NoClient
 
+    # Pre-load token to ensure endpoints are defined before access
+    headers = {
+        "X-Auth-Token": await openstack_get_token(session),
+        "X-Object-Manifest": f"{session['container']}_segments/{file['path']}.c4gh/{uuid}/",
+        "Content-Length": "0",
+    }
+
     async with session["client"].put(
-        f"{session['openstack_object_storage_endpoint']}/{session['container']}/{file['path']}.c4gh",
+        f"{sd_lock_utility.common.get_upload_project_scoped_endpoint(session)}/{session['container']}/{file['path']}.c4gh",
         data=b"",
-        headers={
-            "X-Auth-Token": await openstack_get_token(session),
-            "X-Object-Manifest": f"{session['container']}_segments/{file['path']}.c4gh/{uuid}/",
-            "Content-Length": "0",
-        },
+        headers=headers,
     ):
         pass
 
