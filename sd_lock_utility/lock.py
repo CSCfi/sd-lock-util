@@ -54,7 +54,7 @@ async def process_file_lock(
     if session["use_s3"]:
         # For S3 we can use multipart upload
         sd_lock_utility.common.conditional_echo_debug(opts, "Using s3 for file upload")
-        await sd_lock_utility.s3_client.s3_upload_encrypted_segment(
+        await sd_lock_utility.s3_client.s3_upload_encrypted_file(
             opts,
             session,
             enfile,
