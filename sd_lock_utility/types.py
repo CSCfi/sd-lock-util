@@ -4,8 +4,8 @@ import os
 import pathlib
 import typing
 
-import types_aiobotocore_s3
 import aiohttp
+import types_aiobotocore_s3
 
 # SD lock/unlock utility constants
 

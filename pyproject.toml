@@ -27,6 +27,8 @@ dependencies = [
     "crypt4gh==1.6",
     "aiofiles==23.2.1",
     "aioboto3==13.1.1",
+    "types-aiobotocore-s3==2.25.0",
+    "asyncstdlib==3.13.1",
 ]
 
 [project.optional-dependencies]

@@ -1,21 +1,30 @@
+"""Functions for accessing s3."""
+
 import asyncio
 import hashlib
-from io import BytesIO
 import pathlib
 import secrets
 import typing
+from io import BytesIO
 
+import aiobotocore.response
 import aiofiles
+import asyncstdlib
 import click
 import nacl.bindings
 import nacl.exceptions
-import sd_lock_utility.types
-import sd_lock_utility.client
-import sd_lock_utility.exceptions
-import sd_lock_utility.common
-import aiobotocore.response
 from botocore.exceptions import ClientError
 from types_aiobotocore_s3.type_defs import CompletedPartTypeDef
+
+import sd_lock_utility.client
+import sd_lock_utility.common
+import sd_lock_utility.exceptions
+import sd_lock_utility.types
+
+# Size of ciperthext of encrypted c4gh chunk
+C4GH_CIPETHERTEXT_SIZE: int = 65536
+# Ciphertext + nonce + tag
+C4GH_CHUNK_SIZE: int = C4GH_CIPETHERTEXT_SIZE + 12 + 16
 
 
 async def s3_check_container(
@@ -29,12 +38,9 @@ async def s3_check_container(
 
     try:
         await session["s3_client"].head_bucket(Bucket=container)
-    except ClientError:
-        raise sd_lock_utility.exceptions.NoContainerAccess
-    except Exception as e:
-        sd_lock_utility.common.conditional_echo_debug(
-            opts, f"Unhandled exception when checking container: {e}"
-        )  # FIXME
+    except ClientError as e:
+        if e.response["Error"]["Code"] in ["403", "404"]:
+            raise sd_lock_utility.exceptions.NoContainerAccess
 
 
 async def s3_create_container(
@@ -69,7 +75,8 @@ async def s3_create_container(
     except Exception as e:
         sd_lock_utility.common.conditional_echo_debug(
             opts, f"Unhandled exception when creating container: {e}"
-        )  # FIXME
+        )
+        raise sd_lock_utility.exceptions.ContainerCreationFailed
 
 
 async def encrypt_and_slice_file(
@@ -79,12 +86,12 @@ async def encrypt_and_slice_file(
     bar: typing.Any,
 ) -> typing.AsyncGenerator[bytes, None]:
     """Slice a file into an async generator of encrypted chunks ready for multipart upload."""
-    multipart_upload_size: int = (65536 + 12 + 16) * 1000
+    multipart_upload_size: int = C4GH_CHUNK_SIZE * 1000
     multipart_chunk: bytes = b""
     try:
         async with aiofiles.open(file["localpath"], "rb") as f:
             while True:
-                chunk = await f.read(65536)
+                chunk = await f.read(C4GH_CIPETHERTEXT_SIZE)
                 if not chunk:
                     yield multipart_chunk
 
@@ -106,10 +113,11 @@ async def encrypt_and_slice_file(
                     multipart_chunk = b""
 
     except Exception as e:
-        sd_lock_utility.common.conditional_echo_debug(opts, f"Error slicing: {e}")
+        sd_lock_utility.common.conditional_echo_debug(opts, f"Error slicing file: {e}")
+        raise
 
 
-async def s3_upload_encrypted_segment(
+async def s3_upload_encrypted_file(
     opts: sd_lock_utility.types.SDLockOptions,
     session: sd_lock_utility.types.SDAPISession,
     file: sd_lock_utility.types.SDUtilFile,
@@ -120,7 +128,7 @@ async def s3_upload_encrypted_segment(
         raise sd_lock_utility.exceptions.NoS3Client
 
     bucket: str = session["container"]
-    key: str = f"{str(file["path"])}.c4gh"
+    key: str = f"{str(file['path'])}.c4gh"
     await s3_create_container(session, opts)
     sd_lock_utility.common.conditional_echo_debug(
         opts, f"Starting multipart upload for {bucket}/{key}"
@@ -146,10 +154,10 @@ async def s3_upload_encrypted_segment(
                 UploadId=upload_id,
                 Body=BytesIO(chunk),
             )
-            if hashlib.md5(chunk).hexdigest() not in resp["ETag"]:  # nosec
+            if hashlib.md5(chunk).hexdigest() not in resp["ETag"]:  # nosec  # noqa: S324
                 sd_lock_utility.common.conditional_echo_debug(
                     opts,
-                    f"Calculated ETag {hashlib.md5(chunk).hexdigest()} and response ETag {resp["ETag"]} mismatch",  # nosec
+                    f"Calculated ETag {hashlib.md5(chunk).hexdigest()} and response ETag {resp['ETag']} mismatch",  # nosec  # noqa: S324
                 )
             parts.append({"PartNumber": part_number, "ETag": str(resp["ETag"])})
             part_number += 1
@@ -183,19 +191,14 @@ async def s3_upload_encrypted_segment(
 async def s3_buffered_reader(
     body: aiobotocore.response.StreamingBody,
 ) -> typing.AsyncGenerator[bytes, None]:
-    """Helper function to construct chunks from ClientResponse stream"""
-    CHUNKSIZE: int = 65564
-    buffer = bytearray()
-    # Using chunk size doesn't really do anything here, since function will return anything between 0 and chunksize
-    async for chunk in body.content.iter_chunked(CHUNKSIZE):
-        buffer.extend(chunk)
-
-        while len(buffer) >= CHUNKSIZE:
-            yield bytes(buffer[:CHUNKSIZE])
-            buffer = buffer[CHUNKSIZE:]
-
-    if buffer:
-        yield bytes(buffer)
+    """Construct chunks from ClientResponse stream."""
+    async for chunk in asyncstdlib.itertools.batched(
+        asyncstdlib.itertools.chain.from_iterable(
+            body.content.iter_chunked(C4GH_CHUNK_SIZE)
+        ),
+        C4GH_CHUNK_SIZE,
+    ):
+        yield bytes(chunk)
 
 
 async def s3_download_decrypted_object(
