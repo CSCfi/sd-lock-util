@@ -93,7 +93,7 @@ class SDUnlockOptions(SDCommandBaseOptions):
 class SDHeaderMigrate(SDCommandBaseOptions):
     """Additional type definitions for header migrate command options."""
 
-    from_bucket: str
+    to_bucket: str
 
 
 class SDUtilFile(typing.TypedDict):

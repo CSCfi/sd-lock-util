@@ -7,6 +7,7 @@ import sys
 import click
 
 import sd_lock_utility.lock
+import sd_lock_utility.migrate
 import sd_lock_utility.sharing
 import sd_lock_utility.types
 import sd_lock_utility.unlock
@@ -569,6 +570,88 @@ def fix_missing_headers(
     sys.exit(ret)
 
 
+@click.command()
+@click.option(
+    "--project-id",
+    default="",
+    help="Project id of the project that owns the source and destination buckets.",
+)
+@click.option(
+    "--project-name",
+    default="",
+    help="Project name of the project that owns the source and destination buckets.",
+)
+@click.option("--os-auth-url", default="", help="Openstack authentication backend URL.")
+@click.option(
+    "--sd-connect-address", default="", help="Address used when connecting to SD Connect."
+)
+@click.option(
+    "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
+)
+@click.option(
+    "--no-check-certificate",
+    is_flag=True,
+    help="Don't check TLS certificate for authenticity. (develompent use only)",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Print more information.",
+)
+@click.option("--debug", is_flag=True, help="Print debug information.")
+@click.argument("from_bucket")
+@click.argument("to_bucket")
+def migrate_headers(
+    from_bucket: str,
+    to_bucket: str,
+    project_id: str,
+    project_name: str,
+    os_auth_url: str,
+    sd_connect_address: str,
+    sd_api_token: str,
+    no_check_certificate: bool,
+    verbose: bool,
+    debug: bool,
+):
+    """Migrate headers from an old bucket to a new one.
+
+    The scirpt assumes the objects keys and layout hasn't changed before
+    migration. This means that in no situation should you change the name
+    of any object within the copied bucket before migrating over the headers.
+    Headers are tracked internally by the object key, and will either be
+    attached to the incorrect object or skipped in retrieval.
+    """
+    opts: sd_lock_utility.types.SDHeaderMigrate = {
+        "path": pathlib.Path("."),
+        "container": from_bucket,
+        "project_id": project_id,
+        "project_name": project_name,
+        "owner": "",
+        "owner_name": "",
+        "openstack_auth_url": os_auth_url,
+        "sd_connect_address": sd_connect_address,
+        "no_preserve_original": False,
+        "sd_api_token": sd_api_token,
+        "prefix": "",
+        "no_check_certificate": no_check_certificate,
+        "progress": False,
+        "debug": debug,
+        "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": "",
+        "ec2_secret_key": "",
+        "s3_endpoint_url": "",
+        "to_bucket": to_bucket,
+    }
+
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.migrate.migrate_headers(opts))
+    except KeyboardInterrupt:
+        ret = 0
+    sys.exit(ret)
+
+
 @click.group()
 def wrap():
     """Group CLI functions into a single tool to simplify using pyinstaller."""
@@ -581,6 +664,7 @@ wrap.add_command(pubkey)
 wrap.add_command(idcheck)
 wrap.add_command(fix_header_permissions)
 wrap.add_command(fix_missing_headers)
+wrap.add_command(migrate_headers)
 
 
 if __name__ == "__main__":

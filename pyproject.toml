@@ -62,6 +62,7 @@ sd-pubkey = "sd_lock_utility.cli:pubkey"
 sd-check-id = "sd_lock_utility.cli:idcheck"
 sd-fix-header-permissions = "sd_lock_utility.cli:fix_header_permissions"
 sd-fix-missing-headers = "sd_lock_utility.cli:fix_missing_headers"
+sd-migrate-headers = "sd_lock_utility.cli:migrate_headers"
 sd-lock-util = "sd_lock_utility.cli:wrap"
 
 [project.urls]
@@ -86,6 +87,7 @@ line-length = 90
 target-version = "py312"
 
 # https://beta.ruff.rs/docs/rules/
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -98,7 +100,6 @@ select = [
 #    "UP",  # pyupgrade
     "S",   # Bandit
 ]
-
 ignore = [
     "ANN101",  # Missing type annotation for `self` in method
     "E501",    # line too long, handled by black
@@ -109,5 +110,5 @@ ignore = [
     "D213",    # multi-line-summary-second-line
 ]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 20
