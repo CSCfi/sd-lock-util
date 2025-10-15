@@ -1,4 +1,4 @@
-"""Folder sharing operations."""
+"""Bucket sharing operations."""
 
 import asyncio
 import base64
@@ -9,15 +9,12 @@ import typing
 import aiohttp
 import click
 import crypt4gh.header
-import nacl.bindings
-import nacl.exceptions
 import nacl.public
 
 import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.exceptions
 import sd_lock_utility.os_client
-import sd_lock_utility.sharing
 import sd_lock_utility.types
 
 
@@ -237,7 +234,7 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
             raise_for_status=True,
         ) as cs:
             session["client"] = cs
-            total = await sd_lock_utility.sharing.fix_header_location(opts, session)
+            total = await fix_header_location(opts, session)
             if total == 0:
                 click.echo("No new headers were added to storage.")
             elif total == 1:
