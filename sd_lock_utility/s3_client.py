@@ -273,7 +273,7 @@ async def s3_get_container_objects(
         raise sd_lock_utility.exceptions.NoS3Client
 
     ret: list[str] = []
-    paginator = await session["s3_client"].get_paginator("list_objects_v2")
+    paginator = session["s3_client"].get_paginator("list_objects_v2")
     async for page in paginator.paginate(Bucket=session["container"], Prefix=prefix):
         for obj in page.get("Contents", []):
             ret.append(obj["Key"])
