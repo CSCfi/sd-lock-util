@@ -6,6 +6,7 @@ import pathlib
 import secrets
 import typing
 
+import aioboto3
 import aiohttp
 import click
 import crypt4gh.header
@@ -16,6 +17,7 @@ import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.exceptions
 import sd_lock_utility.os_client
+import sd_lock_utility.s3_client
 import sd_lock_utility.types
 
 
@@ -49,28 +51,39 @@ async def process_file_lock(
                     bar.update(len(chunk))
         return 0
 
-    # Alternatively encrypt and upload the file in a single operation
-    segments_uuid: str = secrets.token_urlsafe(32)
-    total_segments = -(-size // 5366415360)
-    sd_lock_utility.common.conditional_echo_debug(
-        opts, f"Uploading the file in {total_segments} segments"
-    )
-    for object_segment in range(0, total_segments):
-        await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
+    if session["use_s3"]:
+        # For S3 we can use multipart upload
+        sd_lock_utility.common.conditional_echo_debug(opts, "Using s3 for file upload")
+        await sd_lock_utility.s3_client.s3_upload_encrypted_file(
             opts,
             session,
             enfile,
-            object_segment,
-            segments_uuid,
             bar,
         )
 
-    sd_lock_utility.common.conditional_echo_debug(
-        opts, f"Generating a DLO manifest for {enfile['path']}.c4gh"
-    )
-    await sd_lock_utility.os_client.openstack_create_manifest(
-        session, enfile, segments_uuid
-    )
+    else:
+        # Alternatively encrypt and upload the file in a single operation
+        segments_uuid: str = secrets.token_urlsafe(32)
+        total_segments = -(-size // 5366415360)
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, f"Uploading the file in {total_segments} segments"
+        )
+        for object_segment in range(0, total_segments):
+            await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
+                opts,
+                session,
+                enfile,
+                object_segment,
+                segments_uuid,
+                bar,
+            )
+
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, f"Generating a DLO manifest for {enfile['path']}.c4gh"
+        )
+        await sd_lock_utility.os_client.openstack_create_manifest(
+            session, enfile, segments_uuid
+        )
 
     return 0
 
@@ -162,7 +175,7 @@ async def lock(
             enfiles.append(to_add)
 
     # Pre-fetch the token to make the object storage API endpoint defined
-    if not opts["no_content_upload"]:
+    if not opts["no_content_upload"] and not opts["use_s3"]:
         sd_lock_utility.common.conditional_echo_debug(
             opts, "Authenticating with Openstack."
         )
@@ -184,7 +197,7 @@ async def lock(
     if opts["no_preserve_original"]:
         for enfile in enfiles:
             confirm = click.prompt(
-                "Original file removal was cheduled after encryption. Do you want to continue with the removal?",
+                "Original file was scheduled to be removed after encryption. Do you want to continue with the removal?",
                 default="n",
                 type=click.Choice(choices=["y", "n"], case_sensitive=False),
                 show_default=True,
@@ -211,6 +224,10 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             token=opts["sd_api_token"],
             os_auth_url=opts["openstack_auth_url"],
             no_check_certificate=opts["no_check_certificate"],
+            use_s3=opts["use_s3"],
+            ec2_access_key=opts["ec2_access_key"],
+            ec2_secret_key=opts["ec2_secret_key"],
+            s3_endpoint_url=opts["s3_endpoint_url"],
         )
     except sd_lock_utility.exceptions.NoToken:
         click.echo("No API access token was provided.", err=True)
@@ -224,6 +241,15 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
         return 3
+    except sd_lock_utility.exceptions.NoEc2Key:
+        click.echo("Using S3, but EC2 access key was not provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoEc2Secret:
+        click.echo("Using S3, but EC2 secret key was not provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoS3Address:
+        click.echo("Using S3, but S3 endpoint address was not provided.")
+        return 3
 
     exc: typing.Any = None
     ret = 0
@@ -232,7 +258,17 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             raise_for_status=True,
         ) as cs:
             session["client"] = cs
-            ret = await lock(opts, session)
+            if session["use_s3"]:
+                async with aioboto3.Session().client(
+                    service_name="s3",
+                    endpoint_url=session["s3_endpoint_url"],
+                    aws_access_key_id=session["ec2_access_key"],
+                    aws_secret_access_key=session["ec2_secret_key"],
+                ) as s3:
+                    session["s3_client"] = s3
+                    ret = await lock(opts, session)
+            else:
+                ret = await lock(opts, session)
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         click.echo("Files that were already uploaded will not be removed.", err=True)

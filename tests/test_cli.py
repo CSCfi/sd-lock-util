@@ -85,6 +85,13 @@ class TestCliFunctions(unittest.TestCase):
                     "--verbose",
                     "--debug",
                     "--progress",
+                    "--s3",
+                    "--ec2-key",
+                    "test-ec2-key",
+                    "--ec2-secret",
+                    "test-ec2-secret",
+                    "--s3-endpoint-url",
+                    "test-s3-address",
                     "test-path",
                 ],
             )
@@ -107,6 +114,10 @@ class TestCliFunctions(unittest.TestCase):
                 "progress": False,
                 "debug": True,
                 "verbose": True,
+                "use_s3": True,
+                "ec2_access_key": "test-ec2-key",
+                "ec2_secret_key": "test-ec2-secret",
+                "s3_endpoint_url": "test-s3-address",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -152,6 +163,10 @@ class TestCliFunctions(unittest.TestCase):
                 "progress": False,
                 "debug": False,
                 "verbose": True,
+                "use_s3": False,
+                "ec2_access_key": "",
+                "ec2_secret_key": "",
+                "s3_endpoint_url": "",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -186,6 +201,13 @@ class TestCliFunctions(unittest.TestCase):
                     "--verbose",
                     "--debug",
                     "--progress",
+                    "--s3",
+                    "--ec2-key",
+                    "test-ec2-key",
+                    "--ec2-secret",
+                    "test-ec2-secret",
+                    "--s3-endpoint-url",
+                    "test-s3-address",
                 ],
             )
 
@@ -208,6 +230,10 @@ class TestCliFunctions(unittest.TestCase):
                 "progress": False,
                 "debug": True,
                 "verbose": True,
+                "use_s3": True,
+                "ec2_access_key": "test-ec2-key",
+                "ec2_secret_key": "test-ec2-secret",
+                "s3_endpoint_url": "test-s3-address",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -251,6 +277,10 @@ class TestCliFunctions(unittest.TestCase):
                 "progress": False,
                 "debug": True,
                 "verbose": True,
+                "use_s3": False,
+                "ec2_access_key": "",
+                "ec2_secret_key": "",
+                "s3_endpoint_url": "",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -303,6 +333,10 @@ class TestCliFunctions(unittest.TestCase):
                 "progress": False,
                 "debug": True,
                 "verbose": True,
+                "use_s3": False,
+                "ec2_access_key": "",
+                "ec2_secret_key": "",
+                "s3_endpoint_url": "",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -355,6 +389,10 @@ class TestCliFunctions(unittest.TestCase):
                 "progress": False,
                 "debug": True,
                 "verbose": True,
+                "use_s3": False,
+                "ec2_access_key": "",
+                "ec2_secret_key": "",
+                "s3_endpoint_url": "",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
