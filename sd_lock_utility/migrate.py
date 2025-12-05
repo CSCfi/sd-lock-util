@@ -101,7 +101,7 @@ async def bucket_copy_headers(
 
         sd_lock_utility.common.conditional_echo_debug(
             opts,
-            f"Uploading header {header['path']} to Vault for bucket {opts['to_bucket']}",
+            f"Uploading header {header['path']} to Vault for bucket {session['container']}",
         )
         await sd_lock_utility.client.push_header(
             session,
@@ -110,7 +110,8 @@ async def bucket_copy_headers(
         )
 
         sd_lock_utility.common.conditional_echo_verbose(
-            opts, f"Added header for {header['path']} in new bucket {opts['to_bucket']}"
+            opts,
+            f"Added header for {header['path']} in new bucket {session['container']}",
         )
         total += 1
 
