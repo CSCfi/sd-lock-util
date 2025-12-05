@@ -21,6 +21,10 @@ class NoContainer(Exception):
     """No container was provided."""
 
 
+class NoDestinationBucket(Exception):
+    """No destination bucket was provided."""
+
+
 class NoOwnerNameForSharedContainer(Exception):
     """No owner name found for shared bucket."""
 

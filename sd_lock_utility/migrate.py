@@ -1,4 +1,4 @@
-"""Bucket sharing operations."""
+"""Bucket header migration scripts."""
 
 import asyncio
 import base64
@@ -18,98 +18,21 @@ import sd_lock_utility.os_client
 import sd_lock_utility.types
 
 
-async def fix_header_permissions_uploader(
-    opts: sd_lock_utility.types.SDCommandBaseOptions,
-):
-    """Share the incorrectly created header bucket to the owner project."""
-    try:
-        session: sd_lock_utility.types.SDAPISession = (
-            await sd_lock_utility.client.open_session(
-                container=opts["container"],
-                address=opts["sd_connect_address"],
-                project_id=opts["project_id"],
-                project_name=opts["project_name"],
-                owner=opts["owner"],
-                owner_name=opts["owner_name"],
-                token=opts["sd_api_token"],
-                os_auth_url=opts["openstack_auth_url"],
-                no_check_certificate=opts["no_check_certificate"],
-            )
-        )
-    except sd_lock_utility.exceptions.NoToken:
-        click.echo("No API access token was provided.", err=True)
-        return 3
-    except sd_lock_utility.exceptions.NoAddress:
-        click.echo("No API address was provided.", err=True)
-        return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
-        return 3
-    except sd_lock_utility.exceptions.NoContainer:
-        click.echo("No container was provided for uploads.", err=True)
-        return 3
-
-    exc: typing.Any = None
-    ret = 0
-    try:
-        async with aiohttp.ClientSession(
-            raise_for_status=True,
-        ) as cs:
-            session["client"] = cs
-            await sd_lock_utility.client.share_folder_to_project(session)
-        await asyncio.sleep(0.250)
-    except asyncio.CancelledError:
-        click.echo("Received a keyboard interrupt, aborting...", err=True)
-        return 0
-    except aiohttp.ClientResponseError as cex:
-        if cex.status == 401 and not opts["debug"]:
-            click.echo("Authentication was not successful.", err=True)
-            click.echo(
-                "Check that your SD Connect token is still valid and Openstack credentials are correct.",
-                err=True,
-            )
-        else:
-            exc = cex
-    except sd_lock_utility.exceptions.NoOwner:
-        click.echo("The owner id does not exist in cache.", err=True)
-        click.echo("Ensure the owner is configured.")
-        click.echo("The project may not have yet logged in to SD Connect.", err=True)
-    finally:
-        if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
-            raise exc
-
-    return ret
-
-
-async def fix_header_location(
-    opts: sd_lock_utility.types.SDCommandBaseOptions,
+async def bucket_copy_headers(
+    opts: sd_lock_utility.types.SDHeaderMigrate,
     session: sd_lock_utility.types.SDAPISession,
 ):
-    """Fix the folder permissions by using the original uploader's headers."""
+    """Migrate headers from one bucket to anohter."""
     # Create an ephemeral keypair
     privkey = nacl.public.PrivateKey.generate()
     sd_lock_utility.common.conditional_echo_verbose(
-        opts, "Temporarily whitelisting a public key for decryption..."
+        opts, "Temporary whitelisting a public key for decryption..."
     )
     await sd_lock_utility.client.whitelist_key(session, privkey.public_key.encode())
 
-    # Fetch all files in the path
     await sd_lock_utility.os_client.openstack_get_token(session)
-    objects = await sd_lock_utility.os_client.get_container_objects(
-        session, opts["prefix"]
+    keys: list[tuple[pathlib.Path, list[str], list[str]]] = (
+        await sd_lock_utility.os_client.get_container_objects(session)
     )
 
     headers: list[sd_lock_utility.types.SDUtilFile] = []
@@ -118,21 +41,21 @@ async def fix_header_location(
 
     # Retrieve and open the file headers
     try:
-        for root, _, files in objects:
+        for root, _, files in keys:
             for file in files:
                 path: pathlib.Path = root / file
 
                 # Fetch the old header
                 sd_lock_utility.common.conditional_echo_debug(
                     opts,
-                    f"Fetching the original header from the uploader project for {path}.",
+                    f"Fetching the old header from the swift style bucket for {path} from bucket {session['container']}",
                 )
-                uploader_header = await sd_lock_utility.client.get_header(session, path)
-                if not uploader_header:
+                og_header = await sd_lock_utility.client.get_header(session, path)
+                if not og_header:
                     click.echo(f"Found no header for {path}.", err=True)
-                uploader_header_file = io.BytesIO(uploader_header)
+                og_header_file = io.BytesIO(og_header)
                 session_keys, _ = crypt4gh.header.deconstruct(
-                    uploader_header_file, [(0, privkey.encode(), None)]
+                    og_header_file, [(0, privkey.encode(), None)]
                 )
 
                 if not session_keys:
@@ -150,7 +73,6 @@ async def fix_header_location(
                         "session_key": session_keys[0],
                     }
                 )
-
     finally:
         # Revoke the temporary key from whitelist
         sd_lock_utility.common.conditional_echo_verbose(
@@ -159,20 +81,16 @@ async def fix_header_location(
         await sd_lock_utility.client.unlist_key(session)
 
     sd_lock_utility.common.conditional_echo_debug(
-        opts, "Dropping the owner parameters from session..."
-    )
-    session["owner"] = ""
-    session["owner_name"] = ""
-
-    sd_lock_utility.common.conditional_echo_debug(
-        opts, "Retrieving the owner project public key."
+        opts, "Retrieving the most recent project public key."
     )
     pubkey_str = await sd_lock_utility.client.get_public_key(session)
     if not pubkey_str:
         raise sd_lock_utility.exceptions.NoKey
     pubkey = base64.urlsafe_b64decode(pubkey_str)
 
-    # Rewrap the headers using the project public key, and push to Vault
+    # Override source bucket with the new bucket
+    session["container"] = opts["to_bucket"]
+    # Rewrap the headers using latest project public key and push to the new bucket
     for header in headers:
         private_key_eph = nacl.public.PrivateKey.generate()
         header_content = crypt4gh.header.make_packet_data_enc(0, header["session_key"])
@@ -182,7 +100,8 @@ async def fix_header_location(
         header_bytes: bytes = crypt4gh.header.serialize(header_packets)
 
         sd_lock_utility.common.conditional_echo_debug(
-            opts, f"Uploading header {header['path']} to Vault."
+            opts,
+            f"Uploading header {header['path']} to Vault for bucket {session['container']}",
         )
         await sd_lock_utility.client.push_header(
             session,
@@ -191,15 +110,20 @@ async def fix_header_location(
         )
 
         sd_lock_utility.common.conditional_echo_verbose(
-            opts, f"Added header for {header['path']}."
+            opts,
+            f"Added header for {header['path']} in new bucket {session['container']}",
         )
         total += 1
 
     return total
 
 
-async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBaseOptions):
-    """Copy over the incorrectly created headers from the uploader project."""
+async def migrate_headers(opts: sd_lock_utility.types.SDHeaderMigrate):
+    """Copy over the headers from a bucket after naming convention change."""
+    if "to_bucket" not in opts:
+        click.echo("No destination bucket was provided for the headers.", err=True)
+        return 3
+
     try:
         session: sd_lock_utility.types.SDAPISession = (
             await sd_lock_utility.client.open_session(
@@ -207,13 +131,12 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
                 address=opts["sd_connect_address"],
                 project_id=opts["project_id"],
                 project_name=opts["project_name"],
-                owner=opts["owner"],
-                owner_name=opts["owner_name"],
                 token=opts["sd_api_token"],
                 os_auth_url=opts["openstack_auth_url"],
                 no_check_certificate=opts["no_check_certificate"],
             )
         )
+
     except sd_lock_utility.exceptions.NoToken:
         click.echo("No API access token was provided.", err=True)
         return 3
@@ -224,8 +147,7 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
         click.echo("No Openstack project information was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
-        click.echo("No container was provided for uploads.", err=True)
-        return 3
+        click.echo("No bucket was provided as a source for the headers.")
 
     exc: typing.Any = None
     ret = 0
@@ -234,13 +156,17 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
             raise_for_status=True,
         ) as cs:
             session["client"] = cs
-            total = await fix_header_location(opts, session)
+            total = await bucket_copy_headers(opts, session)
             if total == 0:
-                click.echo("No new headers were added to storage.")
-            elif total == 1:
-                click.echo(f"Added {total} header to storage.")
+                click.echo(
+                    f"No headers were migrated to the new bucket {opts['to_bucket']}."
+                )
+            if total == 1:
+                click.echo(f"Migrated one header to the new bucket {opts['to_bucket']}.")
             else:
-                click.echo(f"Added {total} headers to storage.")
+                click.echo(
+                    f"Migrated {total} headers to the new bucket {opts['to_bucket']}"
+                )
         await asyncio.sleep(0.250)
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)

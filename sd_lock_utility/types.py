@@ -90,6 +90,12 @@ class SDUnlockOptions(SDCommandBaseOptions):
     no_path: bool
 
 
+class SDHeaderMigrate(SDCommandBaseOptions):
+    """Additional type definitions for header migrate command options."""
+
+    to_bucket: str
+
+
 class SDUtilFile(typing.TypedDict):
     """Type definitions for a file object in SD Lock Utility."""
 
