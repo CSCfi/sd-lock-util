@@ -297,6 +297,7 @@ async def push_header(
                 "owner": session["owner_name"],
             }
             if session["owner_name"]
+            and session["owner_name"] != session["openstack_project_name"]
             else None
         ),
         prefix="/runner",
@@ -318,6 +319,7 @@ async def get_header(
                 "owner": session["owner_name"],
             }
             if session["owner_name"]
+            and session["owner_name"] != session["openstack_project_name"]
             else None
         ),
         prefix="/runner",
