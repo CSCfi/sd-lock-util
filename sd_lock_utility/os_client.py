@@ -255,44 +255,6 @@ async def get_container_objects(
     return [(pathlib.Path("."), [], ret)]
 
 
-async def openstack_download_decrypted_object(
-    body: aiohttp.StreamReader,
-    opts: sd_lock_utility.types.SDUnlockOptions,
-    session: sd_lock_utility.types.SDAPISession,
-    file: sd_lock_utility.types.SDUtilFile,
-    bar: typing.Any,
-) -> None:
-    """Consume and decrypt a segment from object storage."""
-    async with aiofiles.open(file["localpath"], "wb") as out_f:
-        while True:
-            try:
-                chunk = await body.readexactly(65564)
-            except asyncio.IncompleteReadError as incomplete:
-                chunk = incomplete.partial
-
-            if not chunk:
-                break
-
-            nonce = chunk[:12]
-            content = chunk[12:]
-
-            try:
-                await out_f.write(
-                    nacl.bindings.crypto_aead_chacha20poly1305_ietf_decrypt(
-                        content,
-                        None,
-                        nonce,
-                        file["session_key"],
-                    )
-                )
-            except nacl.exceptions.CryptoError:
-                click.echo(f"Could not decrypt {file['path']}.c4gh", err=True)
-                break
-
-            if bar:
-                bar.update(len(chunk))
-
-
 async def openstack_download_decrypted_object_wrap_progress(
     opts: sd_lock_utility.types.SDUnlockOptions,
     session: sd_lock_utility.types.SDAPISession,
@@ -318,11 +280,11 @@ async def openstack_download_decrypted_object_wrap_progress(
             with click.progressbar(  # type: ignore
                 length=size, label=f"Downloading and decrypting {file['path']}.c4gh"
             ) as bar:
-                await openstack_download_decrypted_object(
+                await sd_lock_utility.common.decrypt_object_get_stream(
                     resp.content, opts, session, file, bar
                 )
         else:
-            await openstack_download_decrypted_object(
+            await sd_lock_utility.common.decrypt_object_get_stream(
                 resp.content, opts, session, file, None
             )
 

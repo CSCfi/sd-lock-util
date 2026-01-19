@@ -259,11 +259,11 @@ async def s3_download_decrypted_object_wrap_progress(
                 with click.progressbar(  # type: ignore
                     length=size, label=f"Downloading and decrypting {file['path']}.c4gh"
                 ) as bar:
-                    await s3_download_decrypted_object(
+                    await sd_lock_utility.common.decrypt_object_get_stream(
                         resp.content, opts, session, file, bar
                     )
             else:
-                await s3_download_decrypted_object(
+                await sd_lock_utility.common.decrypt_object_get_stream(
                     resp.content, opts, session, file, None
                 )
 
