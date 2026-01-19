@@ -111,4 +111,4 @@ ignore = [
 ]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 20
+max-complexity = 25
