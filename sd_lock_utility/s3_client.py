@@ -9,7 +9,6 @@ from io import BytesIO
 
 import aiobotocore.response
 import aiofiles
-import asyncstdlib
 import click
 import nacl.bindings
 import nacl.exceptions
@@ -188,19 +187,6 @@ async def s3_upload_encrypted_file(
             )
 
 
-async def s3_buffered_reader(
-    body: aiobotocore.response.StreamingBody,
-) -> typing.AsyncGenerator[bytes, None]:
-    """Construct chunks from ClientResponse stream."""
-    async for chunk in asyncstdlib.itertools.batched(
-        asyncstdlib.itertools.chain.from_iterable(
-            body.content.iter_chunked(C4GH_CHUNK_SIZE)
-        ),
-        C4GH_CHUNK_SIZE,
-    ):
-        yield bytes(chunk)
-
-
 async def s3_download_decrypted_object(
     body: aiobotocore.response.StreamingBody,
     opts: sd_lock_utility.types.SDUnlockOptions,
@@ -210,8 +196,15 @@ async def s3_download_decrypted_object(
 ) -> None:
     """Download and decrypt object from object storage."""
     async with aiofiles.open(file["localpath"], "wb") as out_f:
+        while True:
+            try:
+                chunk = await body.readexactly(C4GH_CHUNK_SIZE)
+            except asyncio.IncompleteReadError as incomplete:
+                chunk = incomplete.partial
 
-        async for chunk in s3_buffered_reader(body):
+            if not chunk:
+                break
+
             nonce = chunk[:12]
             content = chunk[12:]
 
@@ -225,8 +218,8 @@ async def s3_download_decrypted_object(
                     )
                 )
             except nacl.exceptions.CryptoError:
-                click.echo(f"Could not decrypt {file['path']}.c4gh", err=True)
-                return
+                click.echo(f"Could not decrypt{file['path']}.c4gh", err=True)
+                break
 
             if bar:
                 bar.update(len(chunk))
@@ -244,22 +237,35 @@ async def s3_download_decrypted_object_wrap_progress(
     sd_lock_utility.common.conditional_echo_debug(
         opts, f"Downloading and decrypting file {file['path']}"
     )
-    resp = await session["s3_client"].get_object(
-        Bucket=session["container"], Key=str(file["path"]) + ".c4gh"
+
+    # Use a presigned URL to be able to use bare aiohttp as client
+    # This allows for increased performance as the client is chunk size aware
+    object_url: str = await session["s3_client"].generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": session["container"],
+            "Key": str(file["path"]) + ".c4gh",
+        },
+        ExpiresIn=24 * 3600,
     )
-    size: int = resp["ContentLength"]
+    sd_lock_utility.common.conditional_echo_debug(opts, f"{object_url}")
 
-    sd_lock_utility.common.conditional_echo_debug(opts, f"{resp}")
+    if session["client"] is not None:
+        async with session["client"].get(object_url) as resp:
+            size: int = int(resp.headers["Content-Length"])
 
-    async with resp["Body"] as body:
-        if opts["progress"]:
-            # Can't annotate progress bar without using click internal vars
-            with click.progressbar(  # type: ignore
-                length=int(size), label=f"Downloading and decrypting {file['path']}.c4gh"
-            ) as bar:
-                await s3_download_decrypted_object(body, opts, session, file, bar)
-        else:
-            await s3_download_decrypted_object(body, opts, session, file, None)
+            if opts["progress"]:
+                # Can't annotate progress bar without using click internal vars
+                with click.progressbar(  # type: ignore
+                    length=size, label=f"Downloading and decrypting {file['path']}.c4gh"
+                ) as bar:
+                    await s3_download_decrypted_object(
+                        resp.content, opts, session, file, bar
+                    )
+            else:
+                await s3_download_decrypted_object(
+                    resp.content, opts, session, file, None
+                )
 
     return 0
 
