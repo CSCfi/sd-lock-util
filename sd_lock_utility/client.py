@@ -170,7 +170,7 @@ async def open_session(
             "",
         ),
         "no_check_certificate": no_check_certificate,
-        "openstack_token_valid_until": 0.0,
+        "openstack_token_valid_until": 0.0,  # nosec
         "use_s3": use_s3,
     }
 

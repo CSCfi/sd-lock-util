@@ -186,9 +186,9 @@ def pubkey(
         "debug": debug,
         "verbose": verbose,
         "use_s3": False,
-        "ec2_access_key": "",
-        "ec2_secret_key": "",
-        "s3_endpoint_url": "",
+        "ec2_access_key": "",  # nosec
+        "ec2_secret_key": "",  # nosec
+        "s3_endpoint_url": "",  # nosec
     }
 
     ret = 0
@@ -253,9 +253,9 @@ def idcheck(
         "debug": debug,
         "verbose": verbose,
         "use_s3": False,
-        "ec2_access_key": "",
-        "ec2_secret_key": "",
-        "s3_endpoint_url": "",
+        "ec2_access_key": "",  # nosec
+        "ec2_secret_key": "",  # nosec
+        "s3_endpoint_url": "",  # nosec
     }
 
     ret = 0
@@ -463,9 +463,9 @@ def fix_header_permissions(
         "debug": debug,
         "verbose": verbose,
         "use_s3": False,
-        "ec2_access_key": "",
-        "ec2_secret_key": "",
-        "s3_endpoint_url": "",
+        "ec2_access_key": "",  # nosec
+        "ec2_secret_key": "",  # nosec
+        "s3_endpoint_url": "",  # nosec
     }
 
     ret = 0
@@ -557,9 +557,9 @@ def fix_missing_headers(
         "debug": debug,
         "verbose": verbose,
         "use_s3": False,
-        "ec2_access_key": "",
-        "ec2_secret_key": "",
-        "s3_endpoint_url": "",
+        "ec2_access_key": "",  # nosec
+        "ec2_secret_key": "",  # nosec
+        "s3_endpoint_url": "",  # nosec
     }
 
     ret = 0
@@ -638,9 +638,9 @@ def migrate_headers(
         "debug": debug,
         "verbose": verbose,
         "use_s3": False,
-        "ec2_access_key": "",
-        "ec2_secret_key": "",
-        "s3_endpoint_url": "",
+        "ec2_access_key": "",  # nosec
+        "ec2_secret_key": "",  # nosec
+        "s3_endpoint_url": "",  # nosec
         "to_bucket": to_bucket,
     }
 
