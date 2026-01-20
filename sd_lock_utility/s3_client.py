@@ -250,22 +250,24 @@ async def s3_download_decrypted_object_wrap_progress(
     )
     sd_lock_utility.common.conditional_echo_debug(opts, f"{object_url}")
 
-    if session["client"] is not None:
-        async with session["client"].get(object_url) as resp:
-            size: int = int(resp.headers["Content-Length"])
+    if session["client"] is None:
+        return 1
 
-            if opts["progress"]:
-                # Can't annotate progress bar without using click internal vars
-                with click.progressbar(  # type: ignore
-                    length=size, label=f"Downloading and decrypting {file['path']}.c4gh"
-                ) as bar:
-                    await sd_lock_utility.common.decrypt_object_get_stream(
-                        resp.content, opts, session, file, bar
-                    )
-            else:
+    async with session["client"].get(object_url) as resp:
+        size: int = int(resp.headers["Content-Length"])
+
+        if opts["progress"]:
+            # Can't annotate progress bar without using click internal vars
+            with click.progressbar(  # type: ignore
+                length=size, label=f"Downloading and decrypting {file['path']}.c4gh"
+            ) as bar:
                 await sd_lock_utility.common.decrypt_object_get_stream(
-                    resp.content, opts, session, file, None
+                    resp.content, opts, session, file, bar
                 )
+        else:
+            await sd_lock_utility.common.decrypt_object_get_stream(
+                resp.content, opts, session, file, None
+            )
 
     return 0
 
