@@ -127,6 +127,11 @@ async def lock(
     # Get all files in the path
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
+
+    # Display header addition progress
+    if opts["progress"]:
+        click.echo("\nFiles prepared for upload: 0", nl=False)
+
     for root, _, files in (
         opts["path"].walk()
         if not opts["path"].is_file()
@@ -173,6 +178,9 @@ async def lock(
             )
 
             enfiles.append(to_add)
+
+            if opts["progress"]:
+                click.echo(f"\rFiles prepared for upload: {len(enfiles)}", nl=False)
 
     # Pre-fetch the token to make the object storage API endpoint defined
     if not opts["no_content_upload"] and not opts["use_s3"]:

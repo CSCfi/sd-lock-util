@@ -121,6 +121,11 @@ async def unlock(
     sd_lock_utility.common.conditional_echo_debug(
         opts, "Fetching encapsulated decryption keys for file listing."
     )
+
+    # Display header fetch progress
+    if opts["progress"]:
+        click.echo("\nFiles prepared for download: 0", nl=False)
+
     try:
         for root, _, files in files_to_decrypt:
             for file in files:
@@ -176,6 +181,9 @@ async def unlock(
                 )
 
                 enfiles.append(to_add)
+
+                if opts["progress"]:
+                    click.echo(f"\rFiles prepared for download: {len(enfiles)}", nl=False)
     finally:
         # Pop the temporary key from whitelist
         sd_lock_utility.common.conditional_echo_verbose(
