@@ -52,7 +52,7 @@ dev = [
 ]
 
 build = [
-    "pyinstaller==6.6.0",
+    "pyinstaller==6.17.0",
 ]
 
 [project.scripts]
