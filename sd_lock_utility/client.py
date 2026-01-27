@@ -157,6 +157,10 @@ async def open_session(
             "OS_USERNAME",
             "",
         ),
+        "openstack_user_id": os.environ.get(
+            "OS_USER_ID",
+            "",
+        ),
         "openstack_region_name": os.environ.get(
             "OS_REGION_NAME",
             "",
@@ -186,17 +190,20 @@ async def open_session(
     if not ret["container"]:
         raise sd_lock_utility.exceptions.NoContainer
 
-    if ret["use_s3"]:
-        if not ret["ec2_access_key"]:
-            raise sd_lock_utility.exceptions.NoEc2Key
-
-        if not ret["ec2_secret_key"]:
-            raise sd_lock_utility.exceptions.NoEc2Secret
-
-        if not ret["s3_endpoint_url"]:
-            raise sd_lock_utility.exceptions.NoS3Address
-
     return ret
+
+
+def check_session_s3_params(session: sd_lock_utility.types.SDAPISession) -> bool:
+    """Check if the session contains the requirements for running with s3."""
+    return (
+        True
+        if (
+            session["s3_endpoint_url"]
+            and session["ec2_access_key"]
+            and session["ec2_secret_key"]
+        )
+        else False
+    )
 
 
 async def signed_fetch(

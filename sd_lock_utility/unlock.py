@@ -271,15 +271,6 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoEc2Key:
-        click.echo("Using S3, but EC2 access key was not provided.")
-        return 3
-    except sd_lock_utility.exceptions.NoEc2Secret:
-        click.echo("Using S3, but EC2 secret key was not provided.")
-        return 3
-    except sd_lock_utility.exceptions.NoS3Address:
-        click.echo("Using S3, but S3 endpoint address was not provided.")
-        return 3
 
     exc: typing.Any = None
     ret = 0
@@ -289,6 +280,33 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
         ) as cs:
             session["client"] = cs
             if session["use_s3"]:
+                # If no s3 parameters are configured, try autoconfiguration
+                if not sd_lock_utility.client.check_session_s3_params(session):
+                    try:
+                        # If we're using token auth, retrieving s3 creds requires uid to be present
+                        if (
+                            session["openstack_token"]
+                            and not session["openstack_user_id"]
+                        ):
+                            click.echo(
+                                "Openstack user id is required if token auth is used."
+                            )
+                            return 3
+                        if (
+                            not session["openstack_token"]
+                            and session["openstack_user_id"]
+                        ):
+                            # Init openstack token for retrieval if necessary
+                            await sd_lock_utility.os_client.openstack_get_token(session)
+                        await sd_lock_utility.os_client.init_s3_credentials(session)
+                    except sd_lock_utility.exceptions.NoS3Access:
+                        click.echo("Using S3, but could not initialize credentials.")
+                        click.echo("Provide them using the command line, environment.")
+                        click.echo(
+                            "Alternatively provide Openstack auth information for autoconfiguration."
+                        )
+                        return 3
+
                 async with aioboto3.Session().client(
                     service_name="s3",
                     endpoint_url=session["s3_endpoint_url"],

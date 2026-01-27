@@ -114,6 +114,7 @@ class SDLockUtilTestBase(unittest.IsolatedAsyncioTestCase):
             "openstack_token": "test-openstack-token",
             "openstack_object_storage_endpoint": "http://openstack-test-storage-endpoint",
             "openstack_token_valid_until": 14213213,
+            "openstack_user_id": "test-user-id",
             "container": "test-container",
             "no_check_certificate": True,
             "owner": "",
