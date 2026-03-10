@@ -294,7 +294,7 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
                             return 3
                         if (
                             not session["openstack_token"]
-                            and session["openstack_user_id"]
+                            or not session["openstack_user_id"]
                         ):
                             # Init openstack token for retrieval if necessary
                             await sd_lock_utility.os_client.openstack_get_token(session)
