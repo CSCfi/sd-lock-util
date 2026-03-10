@@ -65,7 +65,62 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
                 )
             ][0]["url"]
 
+            # Cache the user id to page through ec2 credentials
+            if not session["openstack_user_id"]:
+                session["openstack_user_id"] = token_meta["token"]["user"]["id"]
+
     return session["openstack_token"]
+
+
+async def init_s3_credentials(session: sd_lock_utility.types.SDAPISession):
+    """Initialize the S3 session parameters using Keystone."""
+    # Make the function safe to run even when s3 is not enabled
+    if not session["use_s3"]:
+        return
+
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
+    # In CSC environments we can assume that the S3 endpoint will be the Swift
+    # endpoint with the swift qualifier removed
+    if not session["s3_endpoint_url"]:
+        session["s3_endpoint_url"] = session["openstack_object_storage_endpoint"].replace(
+            "/swift/v1", ""
+        )
+
+    # EC2 credenitals can be created or retrieved, we will use existing
+    # credentials if they exist.
+    try:
+        if not session["ec2_access_key"] or not session["ec2_secret_key"]:
+            async with session["client"].get(
+                f"{session['openstack_auth_url']}/users/{session['openstack_user_id']}/credentials/OS-EC2",
+                headers={"X-Auth-Token": session["openstack_token"]},
+            ) as resp:
+                creds = await resp.json()
+                keys = list(
+                    filter(
+                        lambda key: key["tenant_id"] == session["openstack_project_id"],
+                        creds["credentials"],
+                    )
+                )
+
+            if len(keys) > 0:
+                session["ec2_access_key"] = keys[0]["access"]
+                session["ec2_secret_key"] = keys[0]["secret"]
+                return
+
+            # If there are no existing keys, create new ones from scratch
+            async with session["client"].post(
+                f"{session['openstack_auth_url']}/users/{session['openstack_user_id']}/credentials/OS-EC2",
+                headers={"X-Auth-Token": session["openstack_token"]},
+                json={"tenant_id": session["openstack_project_id"]},
+            ) as resp:
+                new_keys = (await resp.json())["credential"]
+                session["ec2_access_key"] = new_keys["access"]
+                session["ec2_secret_key"] = new_keys["secret"]
+
+    except Exception:
+        raise sd_lock_utility.exceptions.NoS3Access
 
 
 async def slice_encrypted_segment(

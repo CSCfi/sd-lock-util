@@ -32,6 +32,7 @@ class SDAPISession(typing.TypedDict):
     openstack_password: str
     openstack_user_domain: str
     openstack_username: str
+    openstack_user_id: str
     openstack_region_name: str
     openstack_token: str
     openstack_object_storage_endpoint: str
