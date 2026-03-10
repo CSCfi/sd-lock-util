@@ -301,9 +301,9 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
                         await sd_lock_utility.os_client.init_s3_credentials(session)
                     except sd_lock_utility.exceptions.NoS3Access:
                         click.echo("Using S3, but could not initialize credentials.")
-                        click.echo("Provide them using the command line, environment.")
+                        click.echo("Provide S3 credentials using the command line or environment.")
                         click.echo(
-                            "Alternatively provide Openstack auth information for autoconfiguration."
+                            "Alternatively provide Openstack auth information for automatic S3 configuration."
                         )
                         return 3
 
