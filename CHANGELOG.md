@@ -7,6 +7,13 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.3.0] - 2026-03-10
+
+### Changed
+
+- (users) configure s3 automatically if username and password are provided
+- add automatic configuration of s3 variables if possible
+
 ## [2026.1.0] - 2026-01-20
 
 ### Added
@@ -41,7 +48,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.1.0...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.0...HEAD
+[2026.3.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.1.0...2026.3.0
 [2026.1.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2025.12.1...2026.1.0
 [2025.12.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2025.12.0...2025.12.1
 [2025.12.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/-/releases/2025.12.0
