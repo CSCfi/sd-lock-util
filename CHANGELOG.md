@@ -7,6 +7,12 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.3.1] - 2026-03-12
+
+### Fixed
+
+- (users) sd-lock-util header migration no longer breaking when some headers are missing
+
 ## [2026.3.0] - 2026-03-10
 
 ### Changed
@@ -48,7 +54,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.0...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.1...HEAD
+[2026.3.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.0...2026.3.1
 [2026.3.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.1.0...2026.3.0
 [2026.1.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2025.12.1...2026.1.0
 [2025.12.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2025.12.0...2025.12.1
