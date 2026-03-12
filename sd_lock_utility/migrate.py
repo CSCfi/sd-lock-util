@@ -52,7 +52,8 @@ async def bucket_copy_headers(
                 )
                 og_header = await sd_lock_utility.client.get_header(session, path)
                 if not og_header:
-                    click.echo(f"Found no header for {path}.", err=True)
+                    click.echo(f"Found no header for {path}, skipping file.", err=True)
+                    continue
                 og_header_file = io.BytesIO(og_header)
                 session_keys, _ = crypt4gh.header.deconstruct(
                     og_header_file, [(0, privkey.encode(), None)]
