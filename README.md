@@ -34,7 +34,9 @@ responsible in making sure that the upload has been finished successfully.
 
 #### Getting started
 ```
-git clone git@github.com/CSCfi/sd-lock-util.git
+git clone https://github.com/CSCfi/sd-lock-util.git
+# Alternatively in case you have SSH keys setup for git
+# git clone git@github.com:CSCfi/sd-lock-util.git
 cd sd-lock-util
 pip install -r requirements.txt
 pip install .[]
