@@ -23,6 +23,7 @@ def get_ssl_context(
 
     # If no verification is requested, flag cert none
     if session["no_check_certificate"]:
+        ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
 
     return ssl_context
