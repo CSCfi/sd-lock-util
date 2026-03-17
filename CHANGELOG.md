@@ -7,6 +7,10 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- (users) git clone instructions in README.md now work as expected
+
 ## [2026.3.1] - 2026-03-12
 
 ### Fixed
