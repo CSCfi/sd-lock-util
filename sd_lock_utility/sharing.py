@@ -53,6 +53,9 @@ async def fix_header_permissions_uploader(
     ret = 0
     try:
         async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(
+                ssl=sd_lock_utility.common.get_ssl_context(session),
+            ),
             raise_for_status=True,
         ) as cs:
             session["client"] = cs
@@ -231,6 +234,9 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
     ret = 0
     try:
         async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(
+                ssl=sd_lock_utility.common.get_ssl_context(session),
+            ),
             raise_for_status=True,
         ) as cs:
             session["client"] = cs

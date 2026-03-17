@@ -1,15 +1,31 @@
 """Common miscellaneous functions for lock-util."""
 
 import asyncio
+import ssl
 import typing
 
 import aiofiles
 import aiohttp
+import certifi
 import click
 import nacl.bindings
 import nacl.exceptions
 
 import sd_lock_utility.types
+
+
+def get_ssl_context(
+    session: sd_lock_utility.types.SDAPISession,
+) -> ssl.SSLContext:
+    """Create and return a certificate matching requested verification."""
+    ssl_context = ssl.create_default_context()
+    ssl_context.load_verify_locations(certifi.where())
+
+    # If no verification is requested, flag cert none
+    if session["no_check_certificate"]:
+        ssl_context.verify_mode = ssl.CERT_NONE
+
+    return ssl_context
 
 
 def conditional_echo_verbose(

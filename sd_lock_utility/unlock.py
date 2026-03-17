@@ -276,6 +276,9 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     ret = 0
     try:
         async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(
+                ssl=sd_lock_utility.common.get_ssl_context(session),
+            ),
             raise_for_status=True,
         ) as cs:
             session["client"] = cs

@@ -235,7 +235,6 @@ async def signed_fetch(
         json=json_data,
         data=data,
         timeout=aiohttp.client.ClientTimeout(total=timeout),
-        ssl=False if session["no_check_certificate"] else None,
     ) as resp:
         if resp.status == 200:
             return await resp.text()
