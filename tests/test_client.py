@@ -121,7 +121,6 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
                 },
                 "data": None,
                 "timeout": "test-timeout",
-                "ssl": False,
             }
         )
         self.mock_timeout.assert_called_once_with(total=60)
