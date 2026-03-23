@@ -216,7 +216,8 @@ async def signed_fetch(
     data: bytes | str | None = None,
     timeout: int = 60,
     duration: int = 3600,
-) -> str | None:
+    ret_json: bool = False,
+) -> typing.Any:
     """Wrap fetching with integrated error handling."""
     url = session["address"] + prefix + path
     signature: sd_lock_utility.types.SDAPISignature = _sign_api_request(
@@ -237,6 +238,8 @@ async def signed_fetch(
         timeout=aiohttp.client.ClientTimeout(total=timeout),
     ) as resp:
         if resp.status == 200:
+            if ret_json:
+                return await resp.json()
             return await resp.text()
 
     return None
@@ -391,8 +394,31 @@ async def get_shared_ids(
     return ret
 
 
+async def check_folder_share_whitelist(
+    session: sd_lock_utility.types.SDAPISession,
+    bucket: str,
+    receiver: str,
+) -> sd_lock_utility.types.SharedProjectId | None:
+    """Check if the bucket was shared to projects in Vault."""
+    ret = await signed_fetch(
+        session,
+        f"/cryptic/{session['openstack_project_name']}/{bucket}/{receiver}",
+        method="GET",
+        prefix="/runner",
+        ret_json=True,
+    )
+
+    if ret:
+        return ret
+
+    return None
+
+
 async def share_folder_to_project(
     session: sd_lock_utility.types.SDAPISession,
+    receiver_id: str = "",
+    receiver_name: str = "",
+    container: str = "",
 ):
     """Share a folder to the receiver project."""
     await get_shared_ids(session)
@@ -402,12 +428,12 @@ async def share_folder_to_project(
 
     await signed_fetch(
         session,
-        f"/cryptic/{session['openstack_project_name']}/{session['container']}",
+        f"/cryptic/{session['openstack_project_name']}/{session['container'] if not container else container}",
         method="PUT",
         json_data=[
             {
-                "name": session["owner_name"],
-                "id": session["owner"],
+                "name": session["owner_name"] if not receiver_name else receiver_name,
+                "id": session["owner"] if not receiver_id else receiver_id,
             }
         ],
         prefix="/runner",

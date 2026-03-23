@@ -172,6 +172,57 @@ async def openstack_check_container(
             raise sd_lock_utility.exceptions.NoContainerAccess
 
 
+async def openstack_get_container_acl(
+    session: sd_lock_utility.types.SDAPISession, container: str
+) -> list[sd_lock_utility.types.ProjectACLWhitelist]:
+    """Return the container sharing whitelist if it exists."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+    async with session["client"].head(
+        f"{session['openstack_object_storage_endpoint']}/{container}",
+        headers={
+            "Content-Length": "0",
+            "X-Auth-Token": await openstack_get_token(session),
+        },
+        raise_for_status=False,
+    ) as resp:
+        if resp.status != 204:
+            return []
+
+        write_acl = resp.headers.get("X-Container-Write", "")
+        read_acl = resp.headers.get("X-Container-Read", "")
+
+    ret: list[sd_lock_utility.types.ProjectACLWhitelist] = []
+
+    # We only care about the read acl, empty write acl is a mistake
+    # in the context of SD Connect
+    if read_acl:
+        # Ignore any referer or listings entry in the read acl
+        for entry in filter(lambda x: ".r" not in x, read_acl.split(",")):
+            project: str = entry.split(":")[0]
+
+            new_entry: sd_lock_utility.types.ProjectACLWhitelist = {
+                "project": project,
+                "read": True,  # Read is implicit as we're paging through read rights
+                "write": False,
+            }
+
+            if write_acl:
+                try:
+                    # If the index exists, the project is part of the write acl.
+
+                    # index() will throw if the value doesn't exist, if we get past
+                    # it in execution, we grant `write`.
+                    write_acl.split(",").index(f"{project}:*")
+                    new_entry["write"] = True
+                except ValueError:
+                    pass
+
+            ret.append(new_entry)
+
+    return ret
+
+
 async def openstack_create_container(
     session: sd_lock_utility.types.SDAPISession,
     opts: sd_lock_utility.types.SDCommandBaseOptions,
