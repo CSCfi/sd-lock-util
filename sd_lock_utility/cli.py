@@ -48,7 +48,7 @@ import sd_lock_utility.unlock
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--s3",
@@ -307,7 +307,7 @@ def idcheck(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--s3",
@@ -421,7 +421,7 @@ def unlock(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -515,7 +515,7 @@ def fix_header_permissions(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -591,7 +591,7 @@ def fix_missing_headers(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -673,7 +673,7 @@ def migrate_headers(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
