@@ -152,7 +152,7 @@ class AWSBucketPolicyStatement(typing.TypedDict):
     Sid: str
     Principal: dict[str, str]
     Effect: str
-    Actions: list[str]
+    Action: list[str]
     Resource: list[str]
 
 

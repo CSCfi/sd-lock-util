@@ -305,11 +305,16 @@ async def s3_add_bucket_policy(
         f"Adding bucket policy: {policy}",
     )
 
+    pol_json = json.dumps(policy)
+
+    sd_lock_utility.common.conditional_echo_debug(opts, f"Jsonified policy: {pol_json}")
+
     try:
         await session["s3_client"].put_bucket_policy(
             Bucket=bucket,
-            Policy=json.dumps(policy),
+            Policy=pol_json,
         )
     except ClientError as e:
         if e.response["Error"]["Code"] in ["403", "404"]:
             raise sd_lock_utility.exceptions.NoContainerAccess
+        raise e

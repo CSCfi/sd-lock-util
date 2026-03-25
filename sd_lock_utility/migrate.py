@@ -137,7 +137,14 @@ async def copy_bucket_shared_access(
     )
 
     if vault_sharing is None:
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, "Skipping vault sharing migration due to empty response"
+        )
         return
+
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Got following vault sharing response: {vault_sharing}"
+    )
 
     await sd_lock_utility.client.share_folder_to_project(
         session,
@@ -145,6 +152,8 @@ async def copy_bucket_shared_access(
         receiver_name=vault_sharing["name"],
         container=opts["to_bucket"],
     )
+
+    sd_lock_utility.common.conditional_echo_debug(opts, "Copied vault side sharing")
 
 
 async def convert_bucket_acl(
@@ -160,6 +169,10 @@ async def convert_bucket_acl(
         )
     )
 
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Migrating following ACLs: {acl}"
+    )
+
     statements: list[sd_lock_utility.types.AWSBucketPolicyStatement] = []
 
     for share in acl:
@@ -169,21 +182,21 @@ async def convert_bucket_acl(
             "Principal": {
                 "AWS": f"arn:aws:iam::{share['project']}:root",
             },
-            "Actions": [
+            "Action": [
                 "s3:GetObject",
                 "s3:ListBucket",
                 "s3:GetObjectTagging",
                 "s3:GetObjectVersion",
             ],
             "Resource": [
-                f"arn:aws:iam:::{opts['to_bucket']}",
-                f"arn:aws:iam:::{opts['to_bucket']}/*",
+                f"arn:aws:s3:::{opts['to_bucket']}",
+                f"arn:aws:s3:::{opts['to_bucket']}/*",
             ],
         }
 
         # Add requirements for write rights if the write grant exists
         if share["write"]:
-            new_statement["Actions"].extend(
+            new_statement["Action"].extend(
                 [
                     "s3:PutObject",
                     "s3:DeleteObject",
@@ -197,6 +210,8 @@ async def convert_bucket_acl(
         # (no need to migrate vault sharing if we're just converting the shares)
         if opts["container"] != opts["to_bucket"]:
             await copy_bucket_shared_access(opts, session, share["project"])
+
+        statements.append(new_statement)
 
     policy: sd_lock_utility.types.AWSBucketPolicy = {
         "Version": "2012-10-17",
@@ -319,6 +334,7 @@ async def migrate_bucket_sharing(opts: sd_lock_utility.types.SDHeaderMigrate):
                 os_auth_url=opts["openstack_auth_url"],
                 no_check_certificate=opts["no_check_certificate"],
                 # No --s3 flag needed, as the ACL migration is always from swift -> s3
+                use_s3=True,
                 ec2_access_key=opts["ec2_access_key"],
                 ec2_secret_key=opts["ec2_secret_key"],
                 s3_endpoint_url=opts["s3_endpoint_url"],
