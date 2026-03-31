@@ -7,6 +7,13 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.3.3] - 2026-03-31
+
+### Added
+
+- (users) `sd-lock-util` can now be used to migrate sharing from Swift to S3, either within the same bucket, or between converted bucket names.
+- `sd-lock-util` can now be used to migrate sharing from Swift to S3, either within the same bucket, or between converted bucket names.
+
 ## [2026.3.2] - 2026-03-18
 
 ### Fixed
@@ -62,7 +69,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.2...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.3...HEAD
+[2026.3.3]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.2...2026.3.3
 [2026.3.2]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.1...2026.3.2
 [2026.3.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.0...2026.3.1
 [2026.3.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.1.0...2026.3.0
