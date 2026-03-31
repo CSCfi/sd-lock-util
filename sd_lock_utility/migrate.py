@@ -128,7 +128,7 @@ async def copy_bucket_shared_access(
 ):
     """Copy over SD Connect additional sharing entry from old bucket."""
     # Retrieve the previous vault sharing for the project (i.e. check if it exists)
-    vault_sharing: sd_lock_utility.types.SharedProjectId | None = (
+    vault_sharing: sd_lock_utility.types.VaultSharedProjectId | None = (
         await sd_lock_utility.client.check_folder_share_whitelist(
             session,
             opts["container"],
@@ -148,8 +148,8 @@ async def copy_bucket_shared_access(
 
     await sd_lock_utility.client.share_folder_to_project(
         session,
-        receiver_id=vault_sharing["id"],
-        receiver_name=vault_sharing["name"],
+        receiver_id=vault_sharing["idkeystone"],
+        receiver_name=vault_sharing["id"],
         container=opts["to_bucket"],
     )
 
