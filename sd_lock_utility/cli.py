@@ -48,7 +48,7 @@ import sd_lock_utility.unlock
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--s3",
@@ -307,7 +307,7 @@ def idcheck(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--s3",
@@ -421,7 +421,7 @@ def unlock(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -515,7 +515,7 @@ def fix_header_permissions(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -591,7 +591,7 @@ def fix_missing_headers(
 @click.option(
     "--no-check-certificate",
     is_flag=True,
-    help="Don't check TLS certificate for authenticity. (develompent use only)",
+    help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
     "--verbose",
@@ -652,6 +652,92 @@ def migrate_headers(
     sys.exit(ret)
 
 
+@click.command()
+@click.option(
+    "--project-id",
+    default="",
+    help="Project id of the project that owns the source and destination buckets.",
+)
+@click.option(
+    "--project-name",
+    default="",
+    help="Project name of the project that owns the source and destination buckets.",
+)
+@click.option("--os-auth-url", default="", help="Openstack authentication backend URL.")
+@click.option(
+    "--sd-connect-address", default="", help="Address used when connecting to SD Connect."
+)
+@click.option(
+    "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
+)
+@click.option(
+    "--no-check-certificate",
+    is_flag=True,
+    help="Don't check TLS certificate for authenticity. (development use only)",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Print more information.",
+)
+@click.option("--ec2-key", default="", help="EC2 key.")
+@click.option("--ec2-secret", default="", help="EC2 secret.")
+@click.option("--s3-endpoint-url", default="", help="S3 endpoint url.")
+@click.option("--debug", is_flag=True, help="Print debug information.")
+@click.argument("from_bucket")
+@click.argument("to_bucket")
+def migrate_sharing(
+    from_bucket: str,
+    to_bucket: str,
+    project_id: str,
+    project_name: str,
+    os_auth_url: str,
+    sd_connect_address: str,
+    sd_api_token: str,
+    no_check_certificate: bool,
+    verbose: bool,
+    ec2_key: str,
+    ec2_secret: str,
+    s3_endpoint_url: str,
+    debug: bool,
+):
+    """Migrate sharing from an old bucket to a new one.
+
+    The script migrates both the Swift sharing ACL to an S3 bucket policy
+    compatible format, and the possible Vault shraing if it exists (granting
+    the header access for read and write sharing levels).
+    """
+    opts: sd_lock_utility.types.SDHeaderMigrate = {
+        "path": pathlib.Path("."),
+        "container": from_bucket,
+        "project_id": project_id,
+        "project_name": project_name,
+        "owner": "",
+        "owner_name": "",
+        "openstack_auth_url": os_auth_url,
+        "sd_connect_address": sd_connect_address,
+        "no_preserve_original": False,
+        "sd_api_token": sd_api_token,
+        "prefix": "",
+        "no_check_certificate": no_check_certificate,
+        "progress": False,
+        "debug": debug,
+        "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": ec2_key,
+        "ec2_secret_key": ec2_secret,
+        "s3_endpoint_url": s3_endpoint_url,
+        "to_bucket": to_bucket,
+    }
+
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.migrate.migrate_bucket_sharing(opts))
+    except KeyboardInterrupt:
+        ret = 0
+    sys.exit(ret)
+
+
 @click.group()
 def wrap():
     """Group CLI functions into a single tool to simplify using pyinstaller."""
@@ -665,6 +751,7 @@ wrap.add_command(idcheck)
 wrap.add_command(fix_header_permissions)
 wrap.add_command(fix_missing_headers)
 wrap.add_command(migrate_headers)
+wrap.add_command(migrate_sharing)
 
 
 if __name__ == "__main__":

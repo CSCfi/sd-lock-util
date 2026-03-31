@@ -98,9 +98,9 @@ Options:
                              provide the upload script afterwards.
   --no-preserve-original     Remove original files after encrypting.
   --no-check-certificate     Don't check TLS certificate for authenticity.
-                             (develompent use only)
+                             (development use only)
   --no-check-certificate     Don't check TLS certificate for authenticity.
-                             (develompent use only)
+                             (development use only)
   --verbose                  Print more information.
   --debug                    Print debug information.
   --progress                 Display file progress information.
@@ -126,7 +126,7 @@ Options:
                              provide the files to decrypt.
   --no-preserve-original     Remove original files after decrypting.
   --no-check-certificate     Don't check TLS certificate for authenticity.
-                             (develompent use only)
+                             (development use only)
   --verbose                  Print more information.
   --debug                    Print debug information.
   --progress                 Display file progress information.
@@ -145,7 +145,7 @@ Options:
   --sd-connect-address TEXT  Address used when connecting to SD Connect.
   --sd-api-token TEXT        Token to use for authentication with SD Connect.
   --no-check-certificate     Don't check TLS certificate for authenticity.
-                             (develompent use only)
+                             (development use only)
   --verbose                  Print more information.
   --debug                    Print debug information.
   --help                     Show this message and exit.

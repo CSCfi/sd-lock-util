@@ -130,3 +130,34 @@ class SharedProjectId(typing.TypedDict):
 
     id: str
     name: str
+
+
+class ProjectACLWhitelist(typing.TypedDict):
+    """Type definitions for a bucket sharing."""
+
+    project: str
+    read: bool
+    write: bool
+
+
+class AWSStatementPrincipal(typing.TypedDict):
+    """Type definitions for AWS S3 bucket policy principal."""
+
+    AWS: str
+
+
+class AWSBucketPolicyStatement(typing.TypedDict):
+    """Type definitions for AWS S3 bucket policy statement."""
+
+    Sid: str
+    Principal: dict[str, str]
+    Effect: str
+    Action: list[str]
+    Resource: list[str]
+
+
+class AWSBucketPolicy(typing.TypedDict):
+    """Type definitions for AWS S3 bucket policy."""
+
+    Version: str
+    Statement: list[AWSBucketPolicyStatement]

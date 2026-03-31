@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import json
 import pathlib
 import secrets
 import typing
@@ -287,3 +288,33 @@ async def s3_get_container_objects(
             ret.append(obj["Key"])
 
     return [(pathlib.Path("."), [], ret)]
+
+
+async def s3_add_bucket_policy(
+    opts: sd_lock_utility.types.SDCommandBaseOptions,
+    session: sd_lock_utility.types.SDAPISession,
+    bucket: str,
+    policy: sd_lock_utility.types.AWSBucketPolicy,
+):
+    """Add a bucket policy to a bucket."""
+    if session["s3_client"] is None:
+        raise sd_lock_utility.exceptions.NoS3Client
+
+    sd_lock_utility.common.conditional_echo_debug(
+        opts,
+        f"Adding bucket policy: {policy}",
+    )
+
+    pol_json = json.dumps(policy)
+
+    sd_lock_utility.common.conditional_echo_debug(opts, f"Jsonified policy: {pol_json}")
+
+    try:
+        await session["s3_client"].put_bucket_policy(
+            Bucket=bucket,
+            Policy=pol_json,
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] in ["403", "404"]:
+            raise sd_lock_utility.exceptions.NoContainerAccess
+        raise e
