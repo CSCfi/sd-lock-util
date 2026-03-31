@@ -132,6 +132,13 @@ class SharedProjectId(typing.TypedDict):
     name: str
 
 
+class VaultSharedProjectId(typing.TypedDict):
+    """Type definitions for the vault side shared project id mapping."""
+
+    id: str
+    idkeystone: str
+
+
 class ProjectACLWhitelist(typing.TypedDict):
     """Type definitions for a bucket sharing."""
 

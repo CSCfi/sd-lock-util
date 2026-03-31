@@ -398,18 +398,25 @@ async def check_folder_share_whitelist(
     session: sd_lock_utility.types.SDAPISession,
     bucket: str,
     receiver: str,
-) -> sd_lock_utility.types.SharedProjectId | None:
+) -> sd_lock_utility.types.VaultSharedProjectId | None:
     """Check if the bucket was shared to projects in Vault."""
+    # Ensure that the used id is the correct one
+    idsResp = await signed_fetch(session, f"/ids/{receiver}", prefix="/sharing")
+    if idsResp is None:
+        return None
+
+    ids = json.loads(idsResp)
+
     ret = await signed_fetch(
         session,
-        f"/cryptic/{session['openstack_project_name']}/{bucket}/{receiver}",
+        f"/check/{session['openstack_project_name']}/{bucket}/{ids['name']}",
         method="GET",
         prefix="/runner",
         ret_json=True,
     )
 
-    if ret:
-        return ret
+    if "data" in ret:
+        return ret["data"]
 
     return None
 
@@ -423,7 +430,7 @@ async def share_folder_to_project(
     """Share a folder to the receiver project."""
     await get_shared_ids(session)
 
-    if not session["owner_name"]:
+    if not session["owner_name"] and not receiver_name:
         raise sd_lock_utility.exceptions.NoOwner
 
     await signed_fetch(
