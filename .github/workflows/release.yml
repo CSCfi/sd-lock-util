@@ -120,7 +120,7 @@ jobs:
           export ASSET_NAME=sd-lock-util
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace almalinux:8 bash .github/build/legacy-builder.sh $ASSET_NAME
           cd ./dist
-          zip --junk-paths ${ASSET_NAME}-python3.12-legacy.zip $ASSET_NAME
+          sudo zip --junk-paths ${ASSET_NAME}-python3.12-legacy.zip $ASSET_NAME
 
       - name: Upload legacy release asset
         uses: softprops/action-gh-release@v2
