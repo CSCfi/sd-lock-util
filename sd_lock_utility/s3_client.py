@@ -41,6 +41,8 @@ async def s3_check_container(
     except ClientError as e:
         if e.response["Error"]["Code"] in ["403", "404"]:
             raise sd_lock_utility.exceptions.NoContainerAccess
+        if e.response["Error"]["Code"] in ["400"]:
+            raise sd_lock_utility.exceptions.S3IncompatibleBucketName
 
 
 async def s3_create_container(
