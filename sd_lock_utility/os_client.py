@@ -72,6 +72,57 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
     return session["openstack_token"]
 
 
+async def openstack_get_projects(
+    session: sd_lock_utility.types.SDAPISession,
+) -> sd_lock_utility.types.OpenstackProjectList:
+    """Retrieve the list of projects available with a token or username."""
+    # If there's no token provided, retrieve an unscoped one using username + password
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
+    unscoped: str = session["openstack_token"]
+
+    if not unscoped:
+        session["openstack_token_valid_until"] = time.time() + 28800
+        if session["client"] is None:
+            raise sd_lock_utility.exceptions.NoClient
+        async with session["client"].post(
+            f"{session['openstack_auth_url']}/auth/tokens",
+            json={
+                "auth": {
+                    "identity": {
+                        "methods": [
+                            "password",
+                        ],
+                        "password": {
+                            "user": {
+                                "name": session["openstack_username"],
+                                "domain": {
+                                    "name": session["openstack_user_domain"],
+                                },
+                                "password": session["openstack_password"],
+                            },
+                        },
+                    },
+                },
+            },
+        ) as resp:
+            print(resp)
+            print(await resp.text())
+            unscoped = resp.headers["X-Subject-Token"]
+
+    # Discover the project listing from the token
+    async with session["client"].get(
+        f"{session['openstack_auth_url']}/auth/projects",
+        headers={
+            "X-Auth-Token": unscoped,
+        },
+    ) as resp:
+        projects: sd_lock_utility.types.OpenstackProjectList = await resp.json()
+
+    return projects
+
+
 async def init_s3_credentials(session: sd_lock_utility.types.SDAPISession):
     """Initialize the S3 session parameters using Keystone."""
     # Make the function safe to run even when s3 is not enabled
@@ -316,11 +367,40 @@ async def openstack_create_manifest(
         pass
 
 
+async def openstack_head_object(
+    session: sd_lock_utility.types.SDAPISession,
+    key: str,
+) -> sd_lock_utility.types.OpenstackObjectListingItem:
+    """Get object meatadata."""
+    ret: sd_lock_utility.types.OpenstackObjectListingItem = {}  # type: ignore
+
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
+    async with session["client"].head(
+        f"{session['openstack_object_storage_endpoint']}/{session['container']}/{key}",
+        headers={
+            "X-Auth-Token": await openstack_get_token(session),
+        },
+    ) as resp:
+        ret["bytes"] = int(resp.headers["Content-Length"])
+        ret["content_type"] = str(resp.headers["Content-Type"])
+        ret["hash"] = str(resp.headers["Etag"])
+        ret["last_modified"] = str(resp.headers["Last-Modified"])
+        ret["name"] = key
+
+        if manifest := resp.headers.get("X-Object-Manifest", ""):
+            ret["manifest"] = manifest
+
+    return ret
+
+
 async def get_container_objects_page(
     session: sd_lock_utility.types.SDAPISession,
     marker: str = "",
     prefix: str = "",
-) -> list[str]:
+    raw: bool = False,
+) -> list[str | sd_lock_utility.types.OpenstackObjectListingItem]:
     """Get a single page of the container object listing."""
     if session["client"] is None:
         raise sd_lock_utility.exceptions.NoClient
@@ -340,25 +420,85 @@ async def get_container_objects_page(
         },
         params=params,
     ) as resp:
-        objects: list[sd_lock_utility.types.OpenstackObjectListingItem] = (
+        objects: list[str | sd_lock_utility.types.OpenstackObjectListingItem] = (
             await resp.json()
         )
-        return [obj["name"] for obj in objects]
+        if raw:
+            return objects
+        return [obj["name"] for obj in objects]  # type: ignore
 
 
 async def get_container_objects(
     session: sd_lock_utility.types.SDAPISession,
     prefix: str = "",
-) -> list[tuple[pathlib.Path, list[str], list[str]]]:
+    raw: bool = False,
+) -> list[
+    tuple[pathlib.Path, list[str], list[str]]
+    | sd_lock_utility.types.OpenstackObjectListingItem
+]:
     """Get the contents of a container in object storage."""
-    ret: list[str] = []
+    ret: list[str | sd_lock_utility.types.OpenstackObjectListingItem] = []
 
-    page = await get_container_objects_page(session, prefix=prefix)
+    page: list[str | sd_lock_utility.types.OpenstackObjectListingItem] = (
+        await get_container_objects_page(session, prefix=prefix, raw=raw)
+    )
     while len(page):
-        ret = ret + page
-        page = await get_container_objects_page(session, marker=page[-1], prefix=prefix)
+        ret.extend(page)
+        if raw:
+            page = await get_container_objects_page(
+                session, marker=page[-1]["name"], prefix=prefix, raw=raw  # type: ignore
+            )
+        else:
+            page = await get_container_objects_page(
+                session, marker=page[-1], prefix=prefix  # type: ignore
+            )
 
-    return [(pathlib.Path("."), [], ret)]
+    if raw:
+        return ret  # type: ignore
+    else:
+        return [(pathlib.Path("."), [], ret)]  # type: ignore
+
+
+async def get_container_page(
+    session: sd_lock_utility.types.SDAPISession,
+    marker: str = "",
+) -> list[sd_lock_utility.types.OpenstackContainerListingItem]:
+    """Get a single page of the project container listing."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
+    params = {
+        "format": "json",
+    }
+    if marker:
+        params["marker"] = marker
+
+    async with session["client"].get(
+        f"{session['openstack_object_storage_endpoint']}",
+        headers={"X-Auth-Token": await openstack_get_token(session)},
+        params=params,
+    ) as resp:
+        containers: list[sd_lock_utility.types.OpenstackContainerListingItem] = (
+            await resp.json()
+        )
+
+    return containers
+
+
+async def get_containers(
+    session: sd_lock_utility.types.SDAPISession,
+) -> list[sd_lock_utility.types.OpenstackContainerListingItem]:
+    """Get the list of containers that exist within a project."""
+    if session["client"] is None:
+        raise sd_lock_utility.exceptions.NoClient
+
+    containers: list[sd_lock_utility.types.OpenstackContainerListingItem] = []
+    marker = ""
+    while container_page := await get_container_page(session, marker):
+        containers.extend(container_page)
+        marker = container_page[-1]["name"]
+
+    return containers
 
 
 async def openstack_download_decrypted_object_wrap_progress(
