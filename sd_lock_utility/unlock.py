@@ -101,7 +101,7 @@ async def unlock(
                 opts["prefix"],
             )
         else:
-            files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(
+            files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(  # type: ignore
                 session,
                 opts["prefix"],
             )
