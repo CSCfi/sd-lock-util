@@ -107,8 +107,6 @@ async def openstack_get_projects(
                 },
             },
         ) as resp:
-            print(resp)
-            print(await resp.text())
             unscoped = resp.headers["X-Subject-Token"]
 
     # Discover the project listing from the token
