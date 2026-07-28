@@ -7,6 +7,19 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.7.0] - 2026-07-28
+
+### Added
+
+- allow incompatible bucket name exceptions to bubble through correctly in s3 checks
+- support listing projects for selection from the keystone API in the client
+- support listing objects from the swift API in the client
+
+### Changed
+
+- (users) flag nonexistent headers in header migration command
+- flag nonexistent headers in header migration command
+
 ## [2026.6.0] - 2026-06-11
 
 ### Fixed
@@ -94,7 +107,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.6.0...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.7.0...HEAD
+[2026.7.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.6.0...2026.7.0
 [2026.6.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.5.1...2026.6.0
 [2026.5.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.5.0...2026.5.1
 [2026.5.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.3.4...2026.5.0
