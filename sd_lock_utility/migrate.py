@@ -34,7 +34,7 @@ async def bucket_copy_headers(
 
     await sd_lock_utility.os_client.openstack_get_token(session)
     keys: list[tuple[pathlib.Path, list[str], list[str]]] = (
-        await sd_lock_utility.os_client.get_container_objects(session)
+        await sd_lock_utility.os_client.get_container_objects(session)  # type: ignore
     )
 
     headers: list[sd_lock_utility.types.SDUtilFile] = []
@@ -52,7 +52,11 @@ async def bucket_copy_headers(
                     opts,
                     f"Fetching the old header from the swift style bucket for {path} from bucket {session['container']}",
                 )
-                og_header = await sd_lock_utility.client.get_header(session, path)
+                try:
+                    og_header = await sd_lock_utility.client.get_header(session, path)
+                except sd_lock_utility.exceptions.NoFileHeader:
+                    click.echo(f"Found no header for {path}, skipping file.", err=True)
+                    continue
                 if not og_header:
                     click.echo(f"Found no header for {path}, skipping file.", err=True)
                     continue

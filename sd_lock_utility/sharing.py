@@ -121,9 +121,9 @@ async def fix_header_location(
 
     # Retrieve and open the file headers
     try:
-        for root, _, files in objects:
+        for root, _, files in objects:  # type: ignore
             for file in files:
-                path: pathlib.Path = root / file
+                path: pathlib.Path = root / file  # type: ignore
 
                 # Fetch the old header
                 sd_lock_utility.common.conditional_echo_debug(

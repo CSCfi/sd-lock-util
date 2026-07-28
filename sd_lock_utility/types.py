@@ -107,6 +107,15 @@ class SDUtilFile(typing.TypedDict):
     session_key: bytes
 
 
+class OpenstackContainerListingItem(typing.TypedDict):
+    """Type definitions for Openstack Object Storage API container item."""
+
+    count: int
+    bytes: int
+    name: str
+    last_modified: str
+
+
 class OpenstackObjectListingItem(typing.TypedDict):
     """Type definitions for Openstack Object Storage API file item."""
 
@@ -115,6 +124,7 @@ class OpenstackObjectListingItem(typing.TypedDict):
     bytes: int
     name: str
     content_type: str
+    manifest: typing.NotRequired[str]
 
 
 class SharedBucketListingEntry(typing.TypedDict):
@@ -168,3 +178,20 @@ class AWSBucketPolicy(typing.TypedDict):
 
     Version: str
     Statement: list[AWSBucketPolicyStatement]
+
+
+class OpenstackProjectListItem(typing.TypedDict):
+    """Type definitions for an Openstack project scope list entry."""
+
+    domain_id: str
+    enabled: bool
+    id: str
+    links: dict
+    name: str
+
+
+class OpenstackProjectList(typing.TypedDict):
+    """Type definitions for an Openstack project scope list."""
+
+    projects: list[OpenstackObjectListingItem]
+    links: dict
