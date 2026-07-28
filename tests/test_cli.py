@@ -56,6 +56,12 @@ class TestCliFunctions(unittest.TestCase):
             self.mock_fix_head,
         )
 
+        self.mock_push_headers = unittest.mock.Mock(return_value=0)
+        self.patch_push_headers = unittest.mock.patch(
+            "sd_lock_utility.cli.sd_lock_utility.lock.wrap_push_headers",
+            self.mock_push_headers,
+        )
+
         self.runner = click.testing.CliRunner()
 
     def test_cli_lock_correct_parameters(self):
@@ -92,6 +98,9 @@ class TestCliFunctions(unittest.TestCase):
                     "test-ec2-secret",
                     "--s3-endpoint-url",
                     "test-s3-address",
+                    "--isolated",
+                    "--project-public-key",
+                    "test-public-key",
                     "test-path",
                 ],
             )
@@ -118,6 +127,8 @@ class TestCliFunctions(unittest.TestCase):
                 "ec2_access_key": "test-ec2-key",
                 "ec2_secret_key": "test-ec2-secret",
                 "s3_endpoint_url": "test-s3-address",
+                "isolated": True,
+                "pubkey": "test-public-key",
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)
@@ -382,6 +393,59 @@ class TestCliFunctions(unittest.TestCase):
                 "openstack_auth_url": "test-os-auth-url",
                 "sd_connect_address": "test-address",
                 "no_content_download": False,
+                "no_preserve_original": False,
+                "sd_api_token": "test-token",
+                "prefix": "",
+                "no_check_certificate": True,
+                "progress": False,
+                "debug": True,
+                "verbose": True,
+                "use_s3": False,
+                "ec2_access_key": "",
+                "ec2_secret_key": "",
+                "s3_endpoint_url": "",
+            }
+        )
+        self.mock_asyncio_run.assert_called_once_with(0)
+        self.mock_sys_exit.assert_any_call(0)
+
+    def test_cli_push_headers_correct_parameters(self):
+        """Test that CLI push-headers command call with correct parameters."""
+        with self.patch_push_headers, self.patch_exit, self.patch_run:
+            self.runner.invoke(
+                sd_lock_utility.cli.push_headers,
+                [
+                    "--container",
+                    "test-container",
+                    "--project-id",
+                    "test-project-id",
+                    "--project-name",
+                    "test-project-name",
+                    "--owner",
+                    "test-owner",
+                    "--owner-name",
+                    "test-owner-name",
+                    "--sd-connect-address",
+                    "test-address",
+                    "--sd-api-token",
+                    "test-token",
+                    "--no-check-certificate",
+                    "--verbose",
+                    "--debug",
+                    "test-path",
+                ],
+            )
+
+        self.mock_push_headers.assert_called_once_with(
+            {
+                "path": pathlib.Path("test-path"),
+                "container": "test-container",
+                "project_id": "test-project-id",
+                "project_name": "test-project-name",
+                "owner": "test-owner",
+                "owner_name": "test-owner-name",
+                "openstack_auth_url": "",
+                "sd_connect_address": "test-address",
                 "no_preserve_original": False,
                 "sd_api_token": "test-token",
                 "prefix": "",

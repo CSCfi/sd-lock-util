@@ -45,6 +45,14 @@ class NoKey(Exception):
     """Could not fetch the key."""
 
 
+class NoKeyProvided(Exception):
+    """No key was provided in isolated mode."""
+
+
+class NoHeaderManifest(Exception):
+    """Header manifest not provided or is malformed."""
+
+
 class NoWhitelistAccess(Exception):
     """Could not add a new key to the whitelist."""
 

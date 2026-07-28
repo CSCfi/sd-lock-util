@@ -47,6 +47,8 @@ async def open_session(
     s3_endpoint_url: str = "",
     no_check_certificate: bool = False,
     use_s3: bool = False,
+    isolated: bool = False,
+    pubkey: str = "",
 ) -> sd_lock_utility.types.SDAPISession:
     """Open a new session for accessing SD API."""
     # Use a default timeout of 28800 to match the token lifetime.
@@ -176,12 +178,24 @@ async def open_session(
         "no_check_certificate": no_check_certificate,
         "openstack_token_valid_until": 0.0,  # nosec
         "use_s3": use_s3,
+        "isolated": isolated,
+        "pubkey": (
+            pubkey
+            if pubkey
+            else os.environ.get(
+                "PROJECT_PUBLIC_KEY",
+                "",
+            )
+        ),
     }
 
-    if not ret["token"]:
+    if ret["isolated"] and not ret["pubkey"]:
+        raise sd_lock_utility.exceptions.NoKeyProvided
+
+    if not ret["isolated"] and not ret["token"]:
         raise sd_lock_utility.exceptions.NoToken
 
-    if not ret["address"]:
+    if not ret["isolated"] and not ret["address"]:
         raise sd_lock_utility.exceptions.NoAddress
 
     if not ret["openstack_project_name"]:

@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import json
 import pathlib
 import secrets
 import typing
@@ -92,41 +93,57 @@ async def lock(
     opts: sd_lock_utility.types.SDLockOptions, session: sd_lock_utility.types.SDAPISession
 ) -> int:
     """Lock an unencrypted folder."""
-    # Check container shared status before fetching the public key
-    sd_lock_utility.common.conditional_echo_debug(
-        opts, "Checking if the bucket is shared before fetching public key."
-    )
-    await sd_lock_utility.client.check_shared_status(session)
-    if session["owner"]:
-        sd_lock_utility.common.conditional_echo_verbose(
-            opts, f"Bucket is owned by project {session['owner']}."
-        )
+    if session["isolated"]:
+        # Use pubkey provided by user
+        if not session["pubkey"]:
+            raise sd_lock_utility.exceptions.NoKeyProvided
+        pubkey_str = session["pubkey"]
+    else:
+        # Check container shared status before fetching the public key
         sd_lock_utility.common.conditional_echo_debug(
-            opts, "Fetching matching owner name from id."
+            opts, "Checking if the bucket is shared before fetching public key."
         )
-        await sd_lock_utility.client.get_shared_ids(session)
-        if session["owner_name"]:
-            sd_lock_utility.common.conditional_echo_debug(
-                opts, f"Got owner name {session['owner_name']} for {session['owner']}"
+        await sd_lock_utility.client.check_shared_status(session)
+        if session["owner"]:
+            sd_lock_utility.common.conditional_echo_verbose(
+                opts, f"Bucket is owned by project {session['owner']}."
             )
-        else:
-            raise sd_lock_utility.exceptions.NoOwnerNameForSharedContainer
+            sd_lock_utility.common.conditional_echo_debug(
+                opts, "Fetching matching owner name from id."
+            )
+            await sd_lock_utility.client.get_shared_ids(session)
+            if session["owner_name"]:
+                sd_lock_utility.common.conditional_echo_debug(
+                    opts, f"Got owner name {session['owner_name']} for {session['owner']}"
+                )
+            else:
+                raise sd_lock_utility.exceptions.NoOwnerNameForSharedContainer
 
-    # Get the public key used in uploading
-    sd_lock_utility.common.conditional_echo_debug(
-        opts, "Fetching public key for the upload operation"
-    )
-    pubkey_str = await sd_lock_utility.client.get_public_key(session)
-    if not pubkey_str:
-        raise sd_lock_utility.exceptions.NoKey
+        # Get the public key used in uploading from api
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, "Fetching public key for the upload operation"
+        )
+        pubkey_str = await sd_lock_utility.client.get_public_key(session)
+        if not pubkey_str:
+            raise sd_lock_utility.exceptions.NoKey
+
     pubkey = base64.urlsafe_b64decode(pubkey_str)
     sd_lock_utility.common.conditional_echo_debug(
-        opts, f"Using the following public key for encryption: {pubkey_str}"
+        opts,
+        f"Using the following public key for encryption: {pubkey_str}",
     )
 
     # Get all files in the path
     sd_lock_utility.common.conditional_echo_verbose(opts, "Gathering a list of files...")
     enfiles: list[sd_lock_utility.types.SDUtilFile] = []
+
+    # For use with isolated mode
+    header_list: sd_lock_utility.types.HeaderList = {
+        "bucket": session["container"],
+        "owner": session["owner"],
+        "owner_name": session["owner_name"],
+        "headers": [],
+    }
 
     # Display header addition progress
     if opts["progress"]:
@@ -166,16 +183,29 @@ async def lock(
                 opts, f"Adding file {to_add} for encryption."
             )
 
-            # Upload the file header
-            sd_lock_utility.common.conditional_echo_debug(
-                opts,
-                f"Uploading header for {to_add['localpath']} to {to_add['path']}.c4gh",
-            )
-            await sd_lock_utility.client.push_header(
-                session,
-                header_bytes,
-                to_add["path"].with_name(to_add["path"].name + ".c4gh"),
-            )
+            if session["isolated"]:
+                # Create an header manifest
+                sd_lock_utility.common.conditional_echo_debug(
+                    opts,
+                    f"Adding header for {to_add['localpath']} to manifest",
+                )
+                header_item: sd_lock_utility.types.HeaderListItem = {
+                    "key": str(to_add["path"].with_name(to_add["path"].name + ".c4gh")),
+                    "header": base64.urlsafe_b64encode(header_bytes).decode(),
+                }
+
+                header_list["headers"].append(header_item)
+            else:
+                # Upload the file header
+                sd_lock_utility.common.conditional_echo_debug(
+                    opts,
+                    f"Uploading header for {to_add['localpath']} to {to_add['path']}.c4gh",
+                )
+                await sd_lock_utility.client.push_header(
+                    session,
+                    header_bytes,
+                    to_add["path"].with_name(to_add["path"].name + ".c4gh"),
+                )
 
             enfiles.append(to_add)
 
@@ -200,6 +230,13 @@ async def lock(
                 await process_file_lock(session, opts, enfile, size, bar)
         else:
             await process_file_lock(session, opts, enfile, size, None)
+
+    # Write header manifest to path
+    if session["isolated"]:
+        root = opts["path"] if opts["path"].is_dir() else opts["path"].parent
+        with open(root / "sd-lock-manifest.json", "w", encoding="utf-8") as out_f:
+            # out_f.write(json.dumps(header_list))
+            json.dump(header_list, out_f, indent=4)
 
     # Remove original files if required
     if opts["no_preserve_original"]:
@@ -229,6 +266,7 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             project_id=opts["project_id"],
             project_name=opts["project_name"],
             owner=opts["owner"],
+            owner_name=opts["owner_name"],
             token=opts["sd_api_token"],
             os_auth_url=opts["openstack_auth_url"],
             no_check_certificate=opts["no_check_certificate"],
@@ -236,6 +274,8 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             ec2_access_key=opts["ec2_access_key"],
             ec2_secret_key=opts["ec2_secret_key"],
             s3_endpoint_url=opts["s3_endpoint_url"],
+            isolated=opts["isolated"],
+            pubkey=opts["pubkey"],
         )
     except sd_lock_utility.exceptions.NoToken:
         click.echo("No API access token was provided.", err=True)
@@ -248,6 +288,9 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoKeyProvided:
+        click.echo("No project public key was provided in isolated mode.", err=True)
         return 3
 
     exc: typing.Any = None
@@ -331,19 +374,7 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     finally:
         # Log unhandled exceptions, but don't let them bubble
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret
@@ -403,19 +434,7 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
         exc = e
     finally:
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
@@ -484,19 +503,103 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
             exc = cex
     finally:
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
+            sd_lock_utility.common.print_traceback()
+            raise exc
+
+    return ret
+
+
+async def push_headers(
+    opts: sd_lock_utility.types.SDCommandBaseOptions,
+    session: sd_lock_utility.types.SDAPISession,
+) -> int:
+    """Gather headers from manifest file and push them to vault."""
+    with open(opts["path"], "r", encoding="utf-8") as in_f:
+        data = json.load(in_f)
+
+    if not data:
+        raise sd_lock_utility.exceptions.NoHeaderManifest
+
+    header_list: sd_lock_utility.types.HeaderList = data
+
+    session["owner"] = header_list["owner"] if header_list["owner"] else ""
+    session["owner_name"] = header_list["owner_name"] if header_list["owner_name"] else ""
+
+    for header_item in header_list["headers"]:
+        sd_lock_utility.common.conditional_echo_verbose(
+            opts,
+            f"Uploading header {header_item['key']}",
+        )
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, f"Header: {header_item['header']}"
+        )
+
+        path = pathlib.Path(header_item["key"])
+        header_bytes = base64.urlsafe_b64decode(header_item["header"])
+
+        await sd_lock_utility.client.push_header(session, header_bytes, path)
+
+    click.echo(f"Headers pushed to vault: {len(header_list['headers'])}")
+
+    return 0
+
+
+async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
+    """Wrap the push headers operation with exception handling."""
+    try:
+        session = await sd_lock_utility.client.open_session(
+            container=opts["container"],
+            address=opts["sd_connect_address"],
+            project_id=opts["project_id"],
+            project_name=opts["project_name"],
+            owner=opts["owner"],
+            token=opts["sd_api_token"],
+            os_auth_url=opts["openstack_auth_url"],
+            no_check_certificate=opts["no_check_certificate"],
+        )
+    except sd_lock_utility.exceptions.NoToken:
+        click.echo("No API access token was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoAddress:
+        click.echo("No API address was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoProject:
+        click.echo("No Openstack project information was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoContainer:
+        click.echo("No container was provided for uploads.", err=True)
+        return 3
+
+    exc: typing.Any = None
+    ret = 0
+    try:
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(
+                ssl=sd_lock_utility.common.get_ssl_context(session),
+            ),
+            raise_for_status=True,
+        ) as cs:
+            session["client"] = cs
+            ret = await push_headers(opts, session)
+        await asyncio.sleep(0.250)
+    except asyncio.CancelledError:
+        click.echo("Received a keyboard interrupt, aborting...", err=True)
+        return 0
+    except aiohttp.ClientResponseError as cex:
+        if cex.status == 401 and not opts["debug"]:
+            click.echo("Authentication was not successful.", err=True)
             click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
+                "Check that your SD Connect token is still valid and Openstack credentials are correct.",
                 err=True,
             )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+        else:
+            exc = cex
+    except Exception as e:
+        ret = 42
+        exc = e
+    finally:
+        if exc is not None:
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret

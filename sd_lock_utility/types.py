@@ -43,6 +43,8 @@ class SDAPISession(typing.TypedDict):
     ec2_access_key: str
     ec2_secret_key: str
     s3_endpoint_url: str
+    isolated: bool
+    pubkey: str
 
 
 class SDAPISignature(typing.TypedDict, total=False):
@@ -82,6 +84,8 @@ class SDLockOptions(SDCommandBaseOptions):
     """Additional type definitions for lock command options."""
 
     no_content_upload: bool
+    isolated: bool
+    pubkey: str
 
 
 class SDUnlockOptions(SDCommandBaseOptions):
@@ -195,3 +199,21 @@ class OpenstackProjectList(typing.TypedDict):
 
     projects: list[OpenstackObjectListingItem]
     links: dict
+
+
+class HeaderListItem(typing.TypedDict):
+    """Type definition for single header item."""
+
+    key: str  # the name of the object
+    header: str  # the header contents in base64, in order to support the JSON file format
+
+
+class HeaderList(typing.TypedDict):
+    """Type definition for list of header items."""
+
+    bucket: str  # the bucket where the object resides
+    owner: str  # the openstack project id of the project that owns the bucket
+    owner_name: (
+        str  # the openstack project name / MyCSC id of the project that owns the bucket
+    )
+    headers: list[HeaderListItem]
