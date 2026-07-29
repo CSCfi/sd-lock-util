@@ -753,12 +753,12 @@ def migrate_sharing(
 @click.option(
     "--project-id",
     default="",
-    help="Project id of the project that owns the source and destination buckets.",
+    help="Project id of the project used in uploading.",
 )
 @click.option(
     "--project-name",
     default="",
-    help="Project name of the project that owns the source and destination buckets.",
+    help="Project name of the project used in uploading.",
 )
 @click.option("--owner", default="", help="Owner of the shared container.")
 @click.option("--owner-name", default="", help="Owner name of the shared container.")
@@ -795,9 +795,9 @@ def push_headers(
 ) -> None:
     """Consume a header manifest and push headers to vault.
 
-    Script is used in conjunction with sd-lock --isolated which produces
-    a header manifest file. This script takes the manifest and pushes
-    the headers contained in it to vault.
+    Command is used in conjunction with sd-lock --isolated which produces
+    a header manifest file. This command takes the manifest and pushes
+    the headers contained in the manifest to vault.
     """
     plpath = pathlib.Path(path)
     if not plpath.exists():

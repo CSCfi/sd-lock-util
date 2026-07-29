@@ -94,6 +94,9 @@ Options:
   --os-auth-url TEXT         Openstack authentication backend URL.
   --sd-connect-address TEXT  Address used when connecting to SD Connect.
   --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --isolated                 Run without SD Connect API connection.
+  --project-public-key TEXT  Project public key for header encryption in
+                             isolated mode.
   --no-content-upload        Upload headers and encrypt in place. User will
                              provide the upload script afterwards.
   --no-preserve-original     Remove original files after encrypting.
@@ -142,6 +145,26 @@ Options:
   --project-id TEXT          Project id of the project used in uploading.
   --project-name TEXT        Project name of the project used in uploading.
   --owner TEXT               Owner of the shared container.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
+Usage: sd-push-headers [OPTIONS] PATH
+
+  Consume a header manifest and push headers to vault.
+
+Options:
+  --container TEXT           Container where the files will be uploaded.
+  --project-id TEXT          Project id of the project used in uploading.
+  --project-name TEXT        Project name of the project used in uploading.
+  --owner TEXT               Owner of the shared container.
+  --owner-name TEXT          Owner name of the shared container.
   --sd-connect-address TEXT  Address used when connecting to SD Connect.
   --sd-api-token TEXT        Token to use for authentication with SD Connect.
   --no-check-certificate     Don't check TLS certificate for authenticity.
