@@ -107,6 +107,9 @@ async def openstack_get_projects(
                 },
             },
         ) as resp:
+            if resp.status == 401:
+                raise sd_lock_utility.exceptions.Unauthorized
+
             unscoped = resp.headers["X-Subject-Token"]
 
     # Discover the project listing from the token

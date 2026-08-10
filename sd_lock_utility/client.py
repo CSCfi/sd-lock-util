@@ -241,6 +241,8 @@ async def signed_fetch(
             if ret_json:
                 return await resp.json()
             return await resp.text()
+        if resp.status == 401:
+            raise sd_lock_utility.exceptions.Unauthorized
 
     return None
 
