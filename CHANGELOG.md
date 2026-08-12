@@ -7,6 +7,10 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added Unauthorized exception
+
 ## [2026.7.0] - 2026-07-28
 
 ### Added
