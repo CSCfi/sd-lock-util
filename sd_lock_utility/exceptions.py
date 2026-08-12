@@ -75,3 +75,7 @@ class NoS3Client(Exception):
 
 class NoS3Access(Exception):
     """Trying to configure S3 using identity API, but failed."""
+
+
+class Unauthorized(Exception):
+    """Raised when API returns HTTP 401 Unauthorized."""
