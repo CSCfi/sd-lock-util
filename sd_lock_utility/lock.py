@@ -522,8 +522,36 @@ async def push_headers(
 
     header_list: sd_lock_utility.types.HeaderList = data
 
-    session["owner"] = header_list["owner"] if header_list["owner"] else ""
-    session["owner_name"] = header_list["owner_name"] if header_list["owner_name"] else ""
+    if session["container"] != header_list["bucket"]:
+        click.echo("Provided container does not match header manifest file.")
+        raise sd_lock_utility.exceptions.ManifestMismatch
+
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, "Checking shared status from SD API."
+    )
+    await sd_lock_utility.client.check_shared_status(session)
+    if session["owner"]:
+        sd_lock_utility.common.conditional_echo_verbose(
+            opts, f"Bucket is owned by project {session['owner']}."
+        )
+        sd_lock_utility.common.conditional_echo_debug(
+            opts, "Fetching matching owner name from id."
+        )
+        await sd_lock_utility.client.get_shared_ids(session)
+        if session["owner_name"]:
+            sd_lock_utility.common.conditional_echo_debug(
+                opts, f"Got owner name {session['owner_name']} for {session['owner']}"
+            )
+
+    owner = header_list["owner"] if header_list["owner"] else ""
+    if session["owner"] and session["owner"] != owner:
+        click.echo("Provided owner does not match header manifest file.")
+        raise sd_lock_utility.exceptions.ManifestMismatch
+
+    owner_name = header_list["owner_name"] if header_list["owner_name"] else ""
+    if session["owner_name"] and session["owner_name"] != owner_name:
+        click.echo("Owner name from SD API does not match header manifest file.")
+        raise sd_lock_utility.exceptions.ManifestMismatch
 
     for header_item in header_list["headers"]:
         sd_lock_utility.common.conditional_echo_verbose(
@@ -568,6 +596,9 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.ManifestMismatch:
+        click.echo("Provided project information differs from header manifest.", err=True)
         return 3
 
     exc: typing.Any = None

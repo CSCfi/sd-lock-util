@@ -87,3 +87,7 @@ class NoS3Access(Exception):
 
 class Unauthorized(Exception):
     """Raised when API returns HTTP 401 Unauthorized."""
+
+
+class ManifestMismatch(Exception):
+    """Provided project information differs from manifest."""
