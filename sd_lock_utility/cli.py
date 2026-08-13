@@ -235,7 +235,7 @@ def pubkey(
 )
 @click.option("--debug", is_flag=True, help="Print debug information.")
 @click.argument("id")
-def idcheck(
+def check_id(
     id: str,
     project_id: str,
     project_name: str,
@@ -845,7 +845,7 @@ def wrap():
 wrap.add_command(lock)
 wrap.add_command(unlock)
 wrap.add_command(pubkey)
-wrap.add_command(idcheck)
+wrap.add_command(check_id)
 wrap.add_command(fix_header_permissions)
 wrap.add_command(fix_missing_headers)
 wrap.add_command(migrate_headers)

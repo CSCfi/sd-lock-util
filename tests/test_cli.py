@@ -254,7 +254,7 @@ class TestCliFunctions(unittest.TestCase):
         """Test that idcheck can be run with correct parameters."""
         with self.patch_idcheck, self.patch_exit, self.patch_run:
             self.runner.invoke(
-                sd_lock_utility.cli.idcheck,
+                sd_lock_utility.cli.check_id,
                 [
                     "test-owner",
                     "--project-id",
