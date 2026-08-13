@@ -625,7 +625,7 @@ def migrate_headers(
 ):
     """Migrate headers from an old bucket to a new one.
 
-    The scirpt assumes the objects keys and layout hasn't changed before
+    The script assumes the objects keys and layout hasn't changed before
     migration. This means that in no situation should you change the name
     of any object within the copied bucket before migrating over the headers.
     Headers are tracked internally by the object key, and will either be

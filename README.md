@@ -81,6 +81,100 @@ Fetching the project public key from SD Connect.
 #### Commands
 After installing the Python package, following commands will be available:
 ```
+➜ sd-lock-util --help
+Usage: sd-lock-util [OPTIONS] COMMAND [ARGS]...
+
+  Group CLI functions into a single tool to simplify using pyinstaller.
+
+Options:
+  --version                 Show the version and exit.
+  --help                    Show this message and exit.
+
+Commands:
+  check-id                  Fetch the project ID information from either share id or name.
+  fix-header-permissions    Grant the actual owner project access to the headers.
+  fix-missing-headers       Retrieve the missing file headers from the uploading project.
+  lock                      Lock a file or folder.
+  migrate-headers           Migrate headers from an old bucket to a new one.
+  migrate-sharing           Migrate sharing from an old bucket to a new one.
+  pubkey                    Fetch and display the project public key.
+  push-headers              Consume a header manifest and push headers to vault.
+  unlock                    Unlock a file or folder.
+```
+
+```
+➜ sd-check-id --help
+Usage: sd-check-id [OPTIONS] ID
+
+  Fetch the project ID information from either share id or name.
+
+Options:
+  --project-id TEXT          Project id of the project used in uploading.
+  --project-name TEXT        Project name of the project used in uploading.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
+➜ sd-fix-header-permissions --help
+Usage: sd-fix-header-permissions [OPTIONS]
+
+  Grant the actual owner project access to the headers.
+
+Options:
+  --container TEXT           Container where the encrypted contents are.
+  --project-id TEXT          Project id of the project used when uploading the
+                             files.
+  --project-name TEXT        Project name of the project used when uploading
+                             the files.
+  --owner TEXT               Owner of the shared container.
+  --owner-name TEXT          Owner name of the shared container.
+  --os-auth-url TEXT         Openstack authentication backend URL.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --prefix TEXT              Prefix to use with paths when downloading (used
+                             for downloading from subfolders).
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
+➜ sd-fix-missing-headers --help
+Usage: sd-fix-missing-headers [OPTIONS]
+
+  Retrieve the missing file headers from the uploading project.
+
+Options:
+  --container TEXT           Container where the encrypted contents are.
+  --project-id TEXT          Project id of the project that should own the
+                             encrypted files.
+  --project-name TEXT        Project name of the project that should own the
+                             encrypted files.
+  --owner TEXT               Sharing ID of the original uploader of the
+                             encrypted files.
+  --owner-name TEXT          Project name of the original uploader of the
+                             encrpyted files.
+  --os-auth-url TEXT         Openstack authentication backend URL.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --prefix TEXT              Prefix to use with paths when downloading (used
+                             for downloading from subfolders).
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
 ➜ sd-lock --help
 Usage: sd-lock [OPTIONS] PATH
 
@@ -111,6 +205,102 @@ Options:
 ```
 
 ```
+➜ sd-migrate-headers --help
+Usage: sd-migrate-headers [OPTIONS] FROM_BUCKET TO_BUCKET
+
+  Migrate headers from an old bucket to a new one.
+
+  The script assumes the objects keys and layout hasn't changed before
+  migration. This means that in no situation should you change the name of any
+  object within the copied bucket before migrating over the headers. Headers
+  are tracked internally by the object key, and will either be attached to the
+  incorrect object or skipped in retrieval.
+
+Options:
+  --project-id TEXT          Project id of the project that owns the source
+                             and destination buckets.
+  --project-name TEXT        Project name of the project that owns the source
+                             and destination buckets.
+  --os-auth-url TEXT         Openstack authentication backend URL.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
+➜ sd-migrate-sharing --help
+Usage: sd-migrate-sharing [OPTIONS] FROM_BUCKET TO_BUCKET
+
+  Migrate sharing from an old bucket to a new one.
+
+  The script migrates both the Swift sharing ACL to an S3 bucket policy
+  compatible format, and the possible Vault shraing if it exists (granting the
+  header access for read and write sharing levels).
+
+Options:
+  --project-id TEXT          Project id of the project that owns the source
+                             and destination buckets.
+  --project-name TEXT        Project name of the project that owns the source
+                             and destination buckets.
+  --os-auth-url TEXT         Openstack authentication backend URL.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --ec2-key TEXT             EC2 key.
+  --ec2-secret TEXT          EC2 secret.
+  --s3-endpoint-url TEXT     S3 endpoint url.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
+➜ sd-pubkey --help
+Usage: sd-pubkey [OPTIONS]
+
+  Fetch and display the project public key.
+
+Options:
+  --project-id TEXT          Project id of the project used in uploading.
+  --project-name TEXT        Project name of the project used in uploading.
+  --owner TEXT               Owner of the shared container.
+  --owner-name TEXT          Owner name of the shared container.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
+➜ sd-push-headers --help
+Usage: sd-push-headers [OPTIONS] PATH
+
+  Consume a header manifest and push headers to vault.
+
+Options:
+  --container TEXT           Container where the files will be uploaded.
+  --project-id TEXT          Project id of the project used in uploading.
+  --project-name TEXT        Project name of the project used in uploading.
+  --owner TEXT               Owner of the shared container.
+  --owner-name TEXT          Owner name of the shared container.
+  --sd-connect-address TEXT  Address used when connecting to SD Connect.
+  --sd-api-token TEXT        Token to use for authentication with SD Connect.
+  --no-check-certificate     Don't check TLS certificate for authenticity.
+                             (development use only)
+  --verbose                  Print more information.
+  --debug                    Print debug information.
+  --help                     Show this message and exit.
+```
+
+```
 ➜ sd-unlock --help
 Usage: sd-unlock [OPTIONS]
 
@@ -133,44 +323,6 @@ Options:
   --verbose                  Print more information.
   --debug                    Print debug information.
   --progress                 Display file progress information.
-  --help                     Show this message and exit.
-```
-
-```
-Usage: sd-pubkey [OPTIONS]
-
-  Fetch and display the project public key.
-
-Options:
-  --project-id TEXT          Project id of the project used in uploading.
-  --project-name TEXT        Project name of the project used in uploading.
-  --owner TEXT               Owner of the shared container.
-  --sd-connect-address TEXT  Address used when connecting to SD Connect.
-  --sd-api-token TEXT        Token to use for authentication with SD Connect.
-  --no-check-certificate     Don't check TLS certificate for authenticity.
-                             (development use only)
-  --verbose                  Print more information.
-  --debug                    Print debug information.
-  --help                     Show this message and exit.
-```
-
-```
-Usage: sd-push-headers [OPTIONS] PATH
-
-  Consume a header manifest and push headers to vault.
-
-Options:
-  --container TEXT           Container where the files will be uploaded.
-  --project-id TEXT          Project id of the project used in uploading.
-  --project-name TEXT        Project name of the project used in uploading.
-  --owner TEXT               Owner of the shared container.
-  --owner-name TEXT          Owner name of the shared container.
-  --sd-connect-address TEXT  Address used when connecting to SD Connect.
-  --sd-api-token TEXT        Token to use for authentication with SD Connect.
-  --no-check-certificate     Don't check TLS certificate for authenticity.
-                             (development use only)
-  --verbose                  Print more information.
-  --debug                    Print debug information.
   --help                     Show this message and exit.
 ```
 
