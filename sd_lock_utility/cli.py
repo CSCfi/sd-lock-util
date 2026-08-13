@@ -836,6 +836,7 @@ def push_headers(
 
 
 @click.group()
+@click.version_option()
 def wrap():
     """Group CLI functions into a single tool to simplify using pyinstaller."""
     pass
