@@ -11,6 +11,10 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 - Added Unauthorized exception
 
+### Fixed
+
+- tox test runner should no longer run into issues when running the black step
+
 ## [2026.7.0] - 2026-07-28
 
 ### Added
