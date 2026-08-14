@@ -597,9 +597,6 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
         return 3
-    except sd_lock_utility.exceptions.ManifestMismatch:
-        click.echo("Provided project information differs from header manifest.", err=True)
-        return 3
 
     exc: typing.Any = None
     ret = 0
@@ -625,6 +622,16 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
             )
         else:
             exc = cex
+    except (TypeError, json.decoder.JSONDecodeError):
+        click.echo("Provided header manifest file is malformed.", err=True)
+        return 4
+    except sd_lock_utility.exceptions.NoHeaderManifest:
+        click.echo("Provided header manifest file contains no data.", err=True)
+        return 5
+    except sd_lock_utility.exceptions.ManifestMismatch:
+        click.echo("Provided project information differs from header manifest.", err=True)
+        click.echo("Check that you are trying to upload the correct file.", err=True)
+        return 6
     except Exception as e:
         ret = 42
         exc = e
