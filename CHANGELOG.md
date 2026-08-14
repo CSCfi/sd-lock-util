@@ -7,6 +7,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.8.0] - 2026-08-14
+
 ### Added
 
 - Added Unauthorized exception
@@ -14,6 +16,11 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 ### Fixed
 
 - tox test runner should no longer run into issues when running the black step
+
+### Changed
+
+- (users) release build should now update version automatically
+- release build should now update version automatically
 
 ## [2026.7.0] - 2026-07-28
 
@@ -115,7 +122,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.7.0...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.8.0...HEAD
+[2026.8.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.7.0...2026.8.0
 [2026.7.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.6.0...2026.7.0
 [2026.6.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.5.1...2026.6.0
 [2026.5.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.5.0...2026.5.1
