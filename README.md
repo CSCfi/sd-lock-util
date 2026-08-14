@@ -39,7 +39,7 @@ git clone https://github.com/CSCfi/sd-lock-util.git
 # git clone git@github.com:CSCfi/sd-lock-util.git
 cd sd-lock-util
 pip install -r requirements.txt
-pip install .[]
+pip install .
 ```
 
 #### Configuration
