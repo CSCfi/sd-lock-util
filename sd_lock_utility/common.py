@@ -12,6 +12,7 @@ import nacl.bindings
 import nacl.exceptions
 
 import sd_lock_utility.types
+from sd_lock_utility import __version__
 
 
 def get_ssl_context(
@@ -108,5 +109,7 @@ def print_traceback() -> None:
     )
     click.echo("Exception details:", err=True)
     click.echo(
-        "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
+        "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------",
+        err=True,
     )
+    click.echo(f"sd-lock-utility version: {__version__}", err=True)
