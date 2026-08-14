@@ -543,13 +543,13 @@ async def push_headers(
                 opts, f"Got owner name {session['owner_name']} for {session['owner']}"
             )
 
-    owner = header_list["owner"] if header_list["owner"] else ""
-    if session["owner"] and session["owner"] != owner:
+    manifest_owner = header_list["owner"] if header_list["owner"] else ""
+    if session["owner"] != manifest_owner:
         click.echo("Provided owner does not match header manifest file.")
         raise sd_lock_utility.exceptions.ManifestMismatch
 
-    owner_name = header_list["owner_name"] if header_list["owner_name"] else ""
-    if session["owner_name"] and session["owner_name"] != owner_name:
+    manifest_owner_name = header_list["owner_name"] if header_list["owner_name"] else ""
+    if session["owner_name"] != manifest_owner_name:
         click.echo("Owner name from SD API does not match header manifest file.")
         raise sd_lock_utility.exceptions.ManifestMismatch
 
