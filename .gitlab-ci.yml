@@ -45,3 +45,17 @@ release:
   extends: .automated-release
   release:
     description: $(cat release_changes.md)
+
+# This is a manual dry-run for users to run in the merge request
+update-versions-dryrun:
+  extends: .update-versions-dryrun
+  variables:
+    UPDATE_VERSION_FILES_LIST: "sd_lock_utility/__init__.py"
+    VERSION_UPDATE_INDICATOR: "__version__"
+
+# This job updates the versions
+update-versions:
+  extends: .update-versions
+  variables:
+    UPDATE_VERSION_FILES_LIST: "sd_lock_utility/__init__.py"
+    VERSION_UPDATE_INDICATOR: "__version__"
