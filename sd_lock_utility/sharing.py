@@ -79,19 +79,7 @@ async def fix_header_permissions_uploader(
         click.echo("The project may not have yet logged in to SD Connect.", err=True)
     finally:
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret
@@ -267,19 +255,7 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
             exc = cex
     finally:
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret

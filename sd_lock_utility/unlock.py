@@ -342,19 +342,7 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     finally:
         # Log unhandled exceptions but don't let them bubble
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret
