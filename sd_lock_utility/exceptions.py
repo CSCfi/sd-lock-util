@@ -91,3 +91,7 @@ class Unauthorized(Exception):
 
 class ManifestMismatch(Exception):
     """Provided project information differs from manifest."""
+
+
+class NoOwnerOrOwnerNameProvided(Exception):
+    """In isolated mode, missing either owner or owner name."""

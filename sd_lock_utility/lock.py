@@ -98,6 +98,8 @@ async def lock(
         if not session["pubkey"]:
             raise sd_lock_utility.exceptions.NoKeyProvided
         pubkey_str = session["pubkey"]
+        if bool(session["owner"]) != bool(session["owner_name"]):
+            raise sd_lock_utility.exceptions.NoOwnerOrOwnerNameProvided
     else:
         # Check container shared status before fetching the public key
         sd_lock_utility.common.conditional_echo_debug(
@@ -235,7 +237,6 @@ async def lock(
     if session["isolated"]:
         root = opts["path"] if opts["path"].is_dir() else opts["path"].parent
         with open(root / "sd-lock-manifest.json", "w", encoding="utf-8") as out_f:
-            # out_f.write(json.dumps(header_list))
             json.dump(header_list, out_f, indent=4)
 
     # Remove original files if required
@@ -357,6 +358,11 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
         click.echo("or provide the owner name parameter manually using", err=True)
         click.echo("--owner-name flag.")
         return 5
+    except sd_lock_utility.exceptions.NoOwnerOrOwnerNameProvided:
+        click.echo(
+            "Please provide or omit both owner and owner name in isolated mode.", err=True
+        )
+        return 6
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
