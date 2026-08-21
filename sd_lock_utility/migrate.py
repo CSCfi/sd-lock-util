@@ -257,7 +257,7 @@ async def migrate_headers(opts: sd_lock_utility.types.SDHeaderMigrate):
         click.echo("No API address was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No bucket was provided as a source for the headers.")
@@ -352,7 +352,7 @@ async def migrate_bucket_sharing(opts: sd_lock_utility.types.SDHeaderMigrate):
         click.echo("No API address was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No bucket was provided as a source for the headers.")

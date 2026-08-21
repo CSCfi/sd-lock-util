@@ -285,7 +285,7 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
         click.echo("No API address was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -406,7 +406,7 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
         click.echo("No API address was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -470,7 +470,7 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
         click.echo("No API address was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -598,7 +598,7 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
         click.echo("No API address was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)

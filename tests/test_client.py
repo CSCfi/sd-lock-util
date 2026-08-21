@@ -69,7 +69,7 @@ class TestClientModule(tests.mockups.SDLockUtilTestBase):
             await sd_lock_utility.client.open_session(**self.test_parameters)
 
     async def test_open_session_should_raise_without_project_name(self):
-        """Test that open_session raises without a project id."""
+        """Test that open_session raises without a project name."""
         self.test_parameters.pop("project_name")
         with self.assertRaises(
             sd_lock_utility.client.sd_lock_utility.exceptions.NoProject
