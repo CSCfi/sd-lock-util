@@ -348,6 +348,12 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         click.echo("Files that were already uploaded will not be removed.", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
     except sd_lock_utility.exceptions.NoKey:
         click.echo("Could not access project public key for encryption.", err=True)
         click.echo("Check that you're using the correct project.", err=True)
@@ -438,6 +444,8 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
                 "Check that your SD Connect token is still valid and Openstack credentials are correct.",
                 err=True,
             )
+        elif cex.status == 404 and not opts["debug"]:
+            click.echo("Project public key was not found.", err=True)
         else:
             exc = cex
     except Exception as e:
@@ -502,8 +510,9 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
             )
         elif cex.status == 404 and not opts["debug"]:
             click.echo("The queried project does not exist in cache.", err=True)
+            click.echo("Check that the provided project information is correct.", err=True)
             click.echo(
-                "The project might not yet have logged in to SD Connect.", err=True
+                "Alternatively, the project might not yet have logged in to SD Connect.", err=True
             )
         else:
             exc = cex
@@ -619,6 +628,12 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)

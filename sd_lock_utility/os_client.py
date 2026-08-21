@@ -28,6 +28,10 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
         session["openstack_token_valid_until"] = time.time() + 28800
         if session["client"] is None:
             raise sd_lock_utility.exceptions.NoClient
+        if not session["openstack_password"] or not session["openstack_password"]:
+            raise sd_lock_utility.exceptions.NoOpenstackCredentials
+        if not session["openstack_auth_url"]:
+            raise sd_lock_utility.exceptions.NoAuthenticationURL
         async with session["client"].post(
             f"{session['openstack_auth_url']}/auth/tokens",
             json={
@@ -54,6 +58,8 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
                 },
             },
         ) as resp:
+            if resp.status == 401:
+                raise sd_lock_utility.exceptions.Unauthorized
             session["openstack_token"] = resp.headers["X-Subject-Token"]
 
             # Cache the endpoint information from the token
@@ -84,8 +90,10 @@ async def openstack_get_projects(
 
     if not unscoped:
         session["openstack_token_valid_until"] = time.time() + 28800
-        if session["client"] is None:
-            raise sd_lock_utility.exceptions.NoClient
+        if not session["openstack_password"] or not session["openstack_password"]:
+            raise sd_lock_utility.exceptions.NoOpenstackCredentials
+        if not session["openstack_auth_url"]:
+            raise sd_lock_utility.exceptions.NoAuthenticationURL
         async with session["client"].post(
             f"{session['openstack_auth_url']}/auth/tokens",
             json={
@@ -144,6 +152,8 @@ async def init_s3_credentials(session: sd_lock_utility.types.SDAPISession):
     # credentials if they exist.
     try:
         if not session["ec2_access_key"] or not session["ec2_secret_key"]:
+            if not session["openstack_auth_url"]:
+                raise sd_lock_utility.exceptions.NoAuthenticationURL
             async with session["client"].get(
                 f"{session['openstack_auth_url']}/users/{session['openstack_user_id']}/credentials/OS-EC2",
                 headers={"X-Auth-Token": session["openstack_token"]},
@@ -212,6 +222,8 @@ async def openstack_check_container(
     """Check the container can be accessed."""
     if session["client"] is None:
         raise sd_lock_utility.exceptions.NoClient
+    if not session["openstack_auth_url"]:
+        raise sd_lock_utility.exceptions.NoAuthenticationURL
     async with session["client"].head(
         f"{session['openstack_object_storage_endpoint']}/{container}",
         headers={
@@ -230,6 +242,8 @@ async def openstack_get_container_acl(
     """Return the container sharing whitelist if it exists."""
     if session["client"] is None:
         raise sd_lock_utility.exceptions.NoClient
+    if not session["openstack_auth_url"]:
+        raise sd_lock_utility.exceptions.NoAuthenticationURL
     async with session["client"].head(
         f"{session['openstack_object_storage_endpoint']}/{container}",
         headers={

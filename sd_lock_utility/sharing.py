@@ -239,6 +239,12 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
