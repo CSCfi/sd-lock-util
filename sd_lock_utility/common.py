@@ -12,6 +12,7 @@ import nacl.bindings
 import nacl.exceptions
 
 import sd_lock_utility.types
+from sd_lock_utility import __version__
 
 
 def get_ssl_context(
@@ -93,3 +94,22 @@ async def decrypt_object_get_stream(
 
             if bar:
                 bar.update(len(chunk))
+
+
+def print_traceback() -> None:
+    """Print traceback."""
+    click.echo("Program encountered an unhandled exception.", err=True)
+    click.echo(
+        "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
+        err=True,
+    )
+    click.echo(
+        "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
+        err=True,
+    )
+    click.echo("Exception details:", err=True)
+    click.echo(
+        "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------",
+        err=True,
+    )
+    click.echo(f"sd-lock-utility version: {__version__}", err=True)

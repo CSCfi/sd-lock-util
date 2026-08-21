@@ -45,6 +45,14 @@ class NoKey(Exception):
     """Could not fetch the key."""
 
 
+class NoKeyProvided(Exception):
+    """No key was provided in isolated mode."""
+
+
+class NoHeaderManifest(Exception):
+    """Header manifest not provided or is malformed."""
+
+
 class NoWhitelistAccess(Exception):
     """Could not add a new key to the whitelist."""
 
@@ -79,3 +87,11 @@ class NoS3Access(Exception):
 
 class Unauthorized(Exception):
     """Raised when API returns HTTP 401 Unauthorized."""
+
+
+class ManifestMismatch(Exception):
+    """Provided project information differs from manifest."""
+
+
+class NoOwnerOrOwnerNameProvided(Exception):
+    """In isolated mode, missing either owner or owner name."""

@@ -63,6 +63,12 @@ import sd_lock_utility.unlock
     is_flag=True,
     help="Print more information.",
 )
+@click.option("--isolated", is_flag=True, help="Run without SD Connect API connection.")
+@click.option(
+    "--project-public-key",
+    default="",
+    help="Project public key for header encryption in isolated mode.",
+)
 @click.option("--debug", is_flag=True, help="Print debug information.")
 @click.option(
     "--progress/--no-progress", default=True, help="Display file progress information."
@@ -87,6 +93,8 @@ def lock(
     ec2_key: str,
     ec2_secret: str,
     s3_endpoint_url: str,
+    isolated: bool,
+    project_public_key: str,
     debug: bool,
     progress: bool,
 ) -> None:
@@ -121,6 +129,8 @@ def lock(
         "ec2_access_key": ec2_key,
         "ec2_secret_key": ec2_secret,
         "s3_endpoint_url": s3_endpoint_url,
+        "isolated": isolated,
+        "pubkey": project_public_key,
     }
 
     ret = 0
@@ -225,7 +235,7 @@ def pubkey(
 )
 @click.option("--debug", is_flag=True, help="Print debug information.")
 @click.argument("id")
-def idcheck(
+def check_id(
     id: str,
     project_id: str,
     project_name: str,
@@ -615,7 +625,7 @@ def migrate_headers(
 ):
     """Migrate headers from an old bucket to a new one.
 
-    The scirpt assumes the objects keys and layout hasn't changed before
+    The script assumes the objects keys and layout hasn't changed before
     migration. This means that in no situation should you change the name
     of any object within the copied bucket before migrating over the headers.
     Headers are tracked internally by the object key, and will either be
@@ -738,7 +748,95 @@ def migrate_sharing(
     sys.exit(ret)
 
 
+@click.command()
+@click.option("--container", default="", help="Container where the files are uploaded.")
+@click.option(
+    "--project-id",
+    default="",
+    help="Project id of the project used in uploading.",
+)
+@click.option(
+    "--project-name",
+    default="",
+    help="Project name of the project used in uploading.",
+)
+@click.option("--owner", default="", help="Owner of the shared container.")
+@click.option("--owner-name", default="", help="Owner name of the shared container.")
+@click.option(
+    "--sd-connect-address", default="", help="Address used when connecting to SD Connect."
+)
+@click.option(
+    "--sd-api-token", default="", help="Token to use for authentication with SD Connect."
+)
+@click.option(
+    "--no-check-certificate",
+    is_flag=True,
+    help="Don't check TLS certificate for authenticity. (development use only)",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Print more information.",
+)
+@click.option("--debug", is_flag=True, help="Print debug information.")
+@click.argument("path")
+def push_headers(
+    path: str,
+    container: str,
+    project_id: str,
+    project_name: str,
+    owner: str,
+    owner_name: str,
+    sd_connect_address: str,
+    sd_api_token: str,
+    no_check_certificate: bool,
+    verbose: bool,
+    debug: bool,
+) -> None:
+    """Consume a header manifest and push headers to vault.
+
+    Command is used in conjunction with sd-lock --isolated which produces
+    a header manifest file. This command takes the manifest and pushes
+    the headers contained in the manifest to vault.
+    """
+    plpath = pathlib.Path(path)
+    if not plpath.exists():
+        click.echo("Could not access the provided path.", err=True)
+        sys.exit(3)
+
+    opts: sd_lock_utility.types.SDCommandBaseOptions = {
+        "container": container,
+        "project_id": project_id,
+        "project_name": project_name,
+        "owner": owner,
+        "owner_name": owner_name,
+        "openstack_auth_url": "",
+        "sd_connect_address": sd_connect_address,
+        "sd_api_token": sd_api_token,
+        "prefix": "",
+        "path": plpath,
+        "no_preserve_original": False,
+        "no_check_certificate": no_check_certificate,
+        "progress": False,
+        "debug": debug,
+        "verbose": verbose,
+        "use_s3": False,
+        "ec2_access_key": "",  # nosec
+        "ec2_secret_key": "",  # nosec
+        "s3_endpoint_url": "",  # nosec
+    }
+
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.lock.wrap_push_headers(opts))
+    except KeyboardInterrupt:
+        ret = 0
+
+    sys.exit(ret)
+
+
 @click.group()
+@click.version_option()
 def wrap():
     """Group CLI functions into a single tool to simplify using pyinstaller."""
     pass
@@ -747,11 +845,12 @@ def wrap():
 wrap.add_command(lock)
 wrap.add_command(unlock)
 wrap.add_command(pubkey)
-wrap.add_command(idcheck)
+wrap.add_command(check_id)
 wrap.add_command(fix_header_permissions)
 wrap.add_command(fix_missing_headers)
 wrap.add_command(migrate_headers)
 wrap.add_command(migrate_sharing)
+wrap.add_command(push_headers)
 
 
 if __name__ == "__main__":
