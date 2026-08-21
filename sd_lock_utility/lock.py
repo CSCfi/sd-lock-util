@@ -424,6 +424,10 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
             session["client"] = cs
             pubkey = await sd_lock_utility.client.get_public_key(session)
         await asyncio.sleep(0.250)
+
+        click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
+        click.echo(pubkey)
+        click.echo("-----END CRYPT4GH PUBLIC KEY-----")
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
@@ -442,10 +446,6 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
         if exc is not None:
             sd_lock_utility.common.print_traceback()
             raise exc
-
-    click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
-    click.echo(pubkey)
-    click.echo("-----END CRYPT4GH PUBLIC KEY-----")
 
     return ret
 
