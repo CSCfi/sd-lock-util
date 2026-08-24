@@ -510,9 +510,12 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
             )
         elif cex.status == 404 and not opts["debug"]:
             click.echo("The queried project does not exist in cache.", err=True)
-            click.echo("Check that the provided project information is correct.", err=True)
             click.echo(
-                "Alternatively, the project might not yet have logged in to SD Connect.", err=True
+                "Check that the provided project information is correct.", err=True
+            )
+            click.echo(
+                "Alternatively, the project might not yet have logged in to SD Connect.",
+                err=True,
             )
         else:
             exc = cex

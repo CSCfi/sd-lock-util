@@ -96,8 +96,10 @@ class ManifestMismatch(Exception):
 class NoOwnerOrOwnerNameProvided(Exception):
     """In isolated mode, missing either owner or owner name."""
 
+
 class NoOpenstackCredentials(Exception):
     """Missing Openstack username and/or password."""
+
 
 class NoAuthenticationURL(Exception):
     """Missing Openstack authentication URL."""
