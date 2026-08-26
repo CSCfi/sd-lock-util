@@ -206,6 +206,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                     "Content-Length": "0",
                     "X-Auth-Token": "test-openstack-token",
                 },
+                "raise_for_status": False,
             },
         )
         self.test_session["client"].put.assert_any_call(
@@ -215,6 +216,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                     "Content-Length": "0",
                     "X-Auth-Token": "test-openstack-token",
                 },
+                "raise_for_status": False,
             },
         )
 

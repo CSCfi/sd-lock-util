@@ -373,6 +373,9 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
         click.echo("Could not access the provided container.")
         click.echo("Check that it exists and you have sufficient permissions.")
         return 7
+    except sd_lock_utility.exceptions.ContainerCreationFailed:
+        click.echo("Could not create container/bucket for upload.", err=True)
+        return 8
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
@@ -382,8 +385,6 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             )
         else:
             exc = cex
-    except sd_lock_utility.exceptions.ContainerCreationFailed:
-        click.echo("Could not create container/bucket for upload.", err=True)
     except Exception as e:
         ret = 42
         exc = e

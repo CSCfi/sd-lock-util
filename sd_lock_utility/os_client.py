@@ -320,9 +320,11 @@ async def openstack_create_container(
                     "Content-Length": "0",
                     "X-Auth-Token": await openstack_get_token(session),
                 },
+                raise_for_status=False,
             ) as resp_put:
                 if resp_put.status not in {201, 202}:
                     raise sd_lock_utility.exceptions.ContainerCreationFailed
+
 
 
 async def openstack_upload_encrypted_segment(
