@@ -175,7 +175,9 @@ async def s3_upload_encrypted_file(
             MultipartUpload={"Parts": parts},
         )
         sd_lock_utility.common.conditional_echo_debug(opts, f"Upload complete for {key}")
-
+    except ClientError as e:
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
+            raise sd_lock_utility.exceptions.NoContainerAccess
     except (asyncio.CancelledError, Exception) as e:
         # multipart upload exists only if upload_id exists
         sd_lock_utility.common.conditional_echo_debug(

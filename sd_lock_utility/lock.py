@@ -369,6 +369,10 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             "Please provide or omit both owner and owner name in isolated mode.", err=True
         )
         return 6
+    except sd_lock_utility.exceptions.NoContainerAccess:
+        click.echo("Could not access the provided container.")
+        click.echo("Check that it exists and you have sufficient permissions.")
+        return 7
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
