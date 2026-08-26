@@ -13,6 +13,7 @@ import crypt4gh.lib
 import nacl.bindings
 import nacl.exceptions
 import nacl.public
+from botocore.exceptions import ClientError
 
 import sd_lock_utility.cli
 import sd_lock_utility.client
@@ -79,7 +80,9 @@ async def unlock(
             opts, "Authenticating with Openstack."
         )
         await sd_lock_utility.os_client.openstack_get_token(session)
-
+    sd_lock_utility.common.conditional_echo_verbose(
+        opts, "Checking container share status."
+    )
     await sd_lock_utility.client.check_shared_status(session)
     if session["owner"]:
         sd_lock_utility.common.conditional_echo_debug(
@@ -95,16 +98,29 @@ async def unlock(
         sd_lock_utility.common.conditional_echo_verbose(
             opts, "Fetching a file listing from object storage..."
         )
+
         if opts["use_s3"]:
-            files_to_decrypt = await sd_lock_utility.s3_client.s3_get_container_objects(
-                session,
-                opts["prefix"],
-            )
+            try:
+                files_to_decrypt = (
+                    await sd_lock_utility.s3_client.s3_get_container_objects(
+                        session,
+                        opts["prefix"],
+                    )
+                )
+            except ClientError as e:
+                if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
+                    raise sd_lock_utility.exceptions.NoContainerAccess
+                raise e
         else:
-            files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(  # type: ignore
-                session,
-                opts["prefix"],
-            )
+            try:
+                files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(  # type: ignore
+                    session,
+                    opts["prefix"],
+                )
+            except aiohttp.ClientResponseError as e:
+                if e.status in [403, 404]:
+                    raise sd_lock_utility.exceptions.NoContainerAccess
+                raise e
     elif (opts["path"].is_file()) or (
         not opts["no_content_download"] and not opts["path"].exists()
     ):
@@ -333,6 +349,10 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
         click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoContainerAccess:
+        click.echo("Container cannot be accessed.", err=True)
+        click.echo("Check that provided container name is correct.", err=True)
         return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
