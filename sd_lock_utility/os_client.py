@@ -326,7 +326,6 @@ async def openstack_create_container(
                     raise sd_lock_utility.exceptions.ContainerCreationFailed
 
 
-
 async def openstack_upload_encrypted_segment(
     opts: sd_lock_utility.types.SDLockOptions,
     session: sd_lock_utility.types.SDAPISession,
@@ -356,8 +355,11 @@ async def openstack_upload_encrypted_segment(
         data=slice_encrypted_segment(opts, session, file, order, bar),
         headers=headers,
         timeout=aiohttp.ClientTimeout(total=28800),
-    ):
-        pass
+        raise_for_status=False,
+    ) as resp_put:
+        if resp_put.status == 403:
+            raise sd_lock_utility.exceptions.NoContainerAccess
+        resp_put.raise_for_status()
 
 
 async def openstack_create_manifest(
