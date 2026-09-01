@@ -11,6 +11,7 @@ import click
 import nacl.bindings
 import nacl.exceptions
 
+import sd_lock_utility.exceptions
 import sd_lock_utility.types
 from sd_lock_utility import __version__
 

@@ -15,9 +15,9 @@ import nacl.exceptions
 import nacl.public
 from botocore.exceptions import ClientError
 
-import sd_lock_utility.cli
 import sd_lock_utility.client
 import sd_lock_utility.common
+import sd_lock_utility.exceptions
 import sd_lock_utility.os_client
 import sd_lock_utility.s3_client
 import sd_lock_utility.types

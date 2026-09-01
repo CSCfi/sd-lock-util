@@ -10,7 +10,6 @@ import aiofiles
 import aiohttp
 import click
 import nacl.bindings
-import nacl.exceptions
 
 import sd_lock_utility.client
 import sd_lock_utility.common
