@@ -42,7 +42,7 @@ async def fix_header_permissions_uploader(
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("No Openstack project information was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -211,7 +211,7 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("No Openstack project information was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -244,6 +244,9 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
         click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
         return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:

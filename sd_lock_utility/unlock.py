@@ -281,7 +281,7 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -349,6 +349,9 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
         click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainerAccess:
         click.echo("Container cannot be accessed.", err=True)

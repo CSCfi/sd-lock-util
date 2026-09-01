@@ -30,6 +30,8 @@ async def openstack_get_token(session: sd_lock_utility.types.SDAPISession) -> st
             raise sd_lock_utility.exceptions.NoClient
         if not session["openstack_password"] or not session["openstack_password"]:
             raise sd_lock_utility.exceptions.NoOpenstackCredentials
+        if not session["openstack_project_id"]:
+            raise sd_lock_utility.exceptions.NoProjectId
         if not session["openstack_auth_url"]:
             raise sd_lock_utility.exceptions.NoAuthenticationURL
         async with session["client"].post(
@@ -154,6 +156,8 @@ async def init_s3_credentials(session: sd_lock_utility.types.SDAPISession):
         if not session["ec2_access_key"] or not session["ec2_secret_key"]:
             if not session["openstack_auth_url"]:
                 raise sd_lock_utility.exceptions.NoAuthenticationURL
+            if not session["openstack_project_id"]:
+                raise sd_lock_utility.exceptions.NoProjectId
             async with session["client"].get(
                 f"{session['openstack_auth_url']}/users/{session['openstack_user_id']}/credentials/OS-EC2",
                 headers={"X-Auth-Token": session["openstack_token"]},

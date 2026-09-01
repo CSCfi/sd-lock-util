@@ -199,7 +199,7 @@ async def open_session(
         raise sd_lock_utility.exceptions.NoAddress
 
     if not ret["openstack_project_name"]:
-        raise sd_lock_utility.exceptions.NoProject
+        raise sd_lock_utility.exceptions.NoProjectName
 
     if not ret["container"]:
         raise sd_lock_utility.exceptions.NoContainer
@@ -360,6 +360,8 @@ async def check_shared_status(
     """Check container share status and return prossible owner."""
     if session["owner"]:
         return
+    if not session["openstack_project_id"]:
+        raise sd_lock_utility.exceptions.NoProjectId
 
     ret = await signed_fetch(
         session,

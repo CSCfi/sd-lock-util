@@ -284,7 +284,7 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -354,6 +354,9 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     except sd_lock_utility.exceptions.NoAuthenticationURL:
         click.echo("No Openstack authentication URL provided.")
         return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
+        return 3
     except sd_lock_utility.exceptions.NoKey:
         click.echo("Could not access project public key for encryption.", err=True)
         click.echo("Check that you're using the correct project.", err=True)
@@ -416,7 +419,7 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -482,7 +485,7 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -614,7 +617,7 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -641,6 +644,9 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
         click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
         return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:

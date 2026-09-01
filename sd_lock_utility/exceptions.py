@@ -9,8 +9,12 @@ class NoAddress(Exception):
     """No address was provided for establishing API connection."""
 
 
-class NoProject(Exception):
-    """No project was provided."""
+class NoProjectName(Exception):
+    """No project name was provided."""
+
+
+class NoProjectId(Exception):
+    """No project id was provided."""
 
 
 class NoOwner(Exception):

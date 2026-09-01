@@ -256,7 +256,7 @@ async def migrate_headers(opts: sd_lock_utility.types.SDHeaderMigrate):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -292,6 +292,9 @@ async def migrate_headers(opts: sd_lock_utility.types.SDHeaderMigrate):
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
         click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
         return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
@@ -345,7 +348,7 @@ async def migrate_bucket_sharing(opts: sd_lock_utility.types.SDHeaderMigrate):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -378,6 +381,9 @@ async def migrate_bucket_sharing(opts: sd_lock_utility.types.SDHeaderMigrate):
                     click.echo(
                         "Alternatively provide Openstack auth information for automatic S3 configuration."
                     )
+                    return 3
+                except sd_lock_utility.exceptions.NoProjectId:
+                    click.echo("Openstack project id was not provided.", err=True)
                     return 3
 
             async with aioboto3.Session().client(
