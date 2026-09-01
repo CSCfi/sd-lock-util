@@ -46,7 +46,7 @@ async def open_session(
     ec2_secret_key: str = "",
     s3_endpoint_url: str = "",
     no_check_certificate: bool = False,
-    use_s3: bool = False,
+    use_s3: bool = True,
     isolated: bool = False,
     pubkey: str = "",
 ) -> sd_lock_utility.types.SDAPISession:

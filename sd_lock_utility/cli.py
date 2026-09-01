@@ -51,9 +51,9 @@ import sd_lock_utility.unlock
     help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
-    "--s3",
+    "--swift",
     is_flag=True,
-    help="Use s3 instead of swift.",
+    help="Use swift instead of s3.",
 )
 @click.option("--ec2-key", default="", help="EC2 key.")
 @click.option("--ec2-secret", default="", help="EC2 secret.")
@@ -89,7 +89,7 @@ def lock(
     no_preserve_original: bool,
     no_check_certificate: bool,
     verbose: bool,
-    s3: bool,
+    swift: bool,
     ec2_key: str,
     ec2_secret: str,
     s3_endpoint_url: str,
@@ -125,7 +125,7 @@ def lock(
         "progress": progress if not debug else False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": s3,
+        "use_s3": not swift,
         "ec2_access_key": ec2_key,
         "ec2_secret_key": ec2_secret,
         "s3_endpoint_url": s3_endpoint_url,
@@ -195,7 +195,7 @@ def pubkey(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": "",  # nosec
         "ec2_secret_key": "",  # nosec
         "s3_endpoint_url": "",  # nosec
@@ -262,7 +262,7 @@ def check_id(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": "",  # nosec
         "ec2_secret_key": "",  # nosec
         "s3_endpoint_url": "",  # nosec
@@ -320,9 +320,9 @@ def check_id(
     help="Don't check TLS certificate for authenticity. (development use only)",
 )
 @click.option(
-    "--s3",
+    "--swift",
     is_flag=True,
-    help="Use s3 instead of swift.",
+    help="Use swift instead of s3.",
 )
 @click.option("--ec2-key", default="", help="EC2 key.")
 @click.option("--ec2-secret", default="", help="EC2 secret.")
@@ -350,7 +350,7 @@ def unlock(
     no_content_download: bool,
     no_preserve_original: bool,
     no_check_certificate: bool,
-    s3: bool,
+    swift: bool,
     ec2_key: str,
     ec2_secret: str,
     s3_endpoint_url: str,
@@ -386,7 +386,7 @@ def unlock(
         "progress": progress if not debug else False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": s3,
+        "use_s3": not swift,
         "ec2_access_key": ec2_key,
         "ec2_secret_key": ec2_secret,
         "s3_endpoint_url": s3_endpoint_url,
@@ -472,7 +472,7 @@ def fix_header_permissions(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": "",  # nosec
         "ec2_secret_key": "",  # nosec
         "s3_endpoint_url": "",  # nosec
@@ -566,7 +566,7 @@ def fix_missing_headers(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": "",  # nosec
         "ec2_secret_key": "",  # nosec
         "s3_endpoint_url": "",  # nosec
@@ -647,7 +647,7 @@ def migrate_headers(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": "",  # nosec
         "ec2_secret_key": "",  # nosec
         "s3_endpoint_url": "",  # nosec
@@ -733,7 +733,7 @@ def migrate_sharing(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": ec2_key,
         "ec2_secret_key": ec2_secret,
         "s3_endpoint_url": s3_endpoint_url,
@@ -820,7 +820,7 @@ def push_headers(
         "progress": False,
         "debug": debug,
         "verbose": verbose,
-        "use_s3": False,
+        "use_s3": True,
         "ec2_access_key": "",  # nosec
         "ec2_secret_key": "",  # nosec
         "s3_endpoint_url": "",  # nosec
