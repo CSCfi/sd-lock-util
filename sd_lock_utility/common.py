@@ -11,6 +11,7 @@ import click
 import nacl.bindings
 import nacl.exceptions
 
+import sd_lock_utility.exceptions
 import sd_lock_utility.types
 from sd_lock_utility import __version__
 
@@ -51,6 +52,8 @@ def get_upload_project_scoped_endpoint(
 ) -> str:
     """Get the correct endpoint for uploading."""
     if session["owner"]:
+        if not session["openstack_project_id"]:
+            raise sd_lock_utility.exceptions.NoProjectId
         return session["openstack_object_storage_endpoint"].replace(
             session["openstack_project_id"],
             session["owner"],

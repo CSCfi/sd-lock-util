@@ -19,7 +19,10 @@ class TestS3Client(tests.mockups.SDLockUtilTestBase):
         session["s3_client"] = unittest.mock.AsyncMock()
         opts = {"debug": False}
 
-        error_response = {"Error": {"Code": "404"}}
+        error_response = {
+            "Error": {"Code": "NoSuchBucket"},
+            "ResponseMetadata": {"HTTPStatusCode": 404},
+        }
         session["s3_client"].head_bucket.side_effect = ClientError(
             error_response, "HeadBucket"
         )

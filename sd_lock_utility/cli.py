@@ -101,7 +101,7 @@ def lock(
     """Lock a file or folder."""
     plpath = pathlib.Path(path)
     if not plpath.exists():
-        click.echo("Could not access the provided path.", err=True)
+        click.echo(f"Could not access the provided path '{path}'.", err=True)
         sys.exit(3)
 
     if progress and debug:
@@ -361,7 +361,7 @@ def unlock(
     """Unlock a file or folder."""
     plpath = pathlib.Path(path)
     if path and not plpath.exists():
-        click.echo("Could not access the provided path.", err=True)
+        click.echo(f"Could not access the provided path '{path}'.", err=True)
         sys.exit(3)
 
     if progress and debug:

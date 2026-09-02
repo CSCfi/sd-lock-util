@@ -284,8 +284,8 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+    except sd_lock_utility.exceptions.NoProjectName:
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -348,6 +348,15 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         click.echo("Files that were already uploaded will not be removed.", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
+        return 3
     except sd_lock_utility.exceptions.NoKey:
         click.echo("Could not access project public key for encryption.", err=True)
         click.echo("Check that you're using the correct project.", err=True)
@@ -363,6 +372,13 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             "Please provide or omit both owner and owner name in isolated mode.", err=True
         )
         return 6
+    except sd_lock_utility.exceptions.NoContainerAccess:
+        click.echo("Could not access the provided container.")
+        click.echo("Check that it exists and you have sufficient permissions.")
+        return 7
+    except sd_lock_utility.exceptions.ContainerCreationFailed:
+        click.echo("Could not create container/bucket for upload.", err=True)
+        return 8
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
@@ -372,8 +388,6 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             )
         else:
             exc = cex
-    except sd_lock_utility.exceptions.ContainerCreationFailed:
-        click.echo("Could not create container/bucket for upload.", err=True)
     except Exception as e:
         ret = 42
         exc = e
@@ -405,8 +419,8 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+    except sd_lock_utility.exceptions.NoProjectName:
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -424,6 +438,10 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
             session["client"] = cs
             pubkey = await sd_lock_utility.client.get_public_key(session)
         await asyncio.sleep(0.250)
+
+        click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
+        click.echo(pubkey)
+        click.echo("-----END CRYPT4GH PUBLIC KEY-----")
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
@@ -434,6 +452,8 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
                 "Check that your SD Connect token is still valid and Openstack credentials are correct.",
                 err=True,
             )
+        elif cex.status == 404 and not opts["debug"]:
+            click.echo("Project public key was not found.", err=True)
         else:
             exc = cex
     except Exception as e:
@@ -442,10 +462,6 @@ async def get_pubkey(opts: sd_lock_utility.types.SDCommandBaseOptions):
         if exc is not None:
             sd_lock_utility.common.print_traceback()
             raise exc
-
-    click.echo("-----BEGIN CRYPT4GH PUBLIC KEY-----")
-    click.echo(pubkey)
-    click.echo("-----END CRYPT4GH PUBLIC KEY-----")
 
     return ret
 
@@ -469,8 +485,8 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+    except sd_lock_utility.exceptions.NoProjectName:
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -503,7 +519,11 @@ async def get_id(opts: sd_lock_utility.types.SDCommandBaseOptions):
         elif cex.status == 404 and not opts["debug"]:
             click.echo("The queried project does not exist in cache.", err=True)
             click.echo(
-                "The project might not yet have logged in to SD Connect.", err=True
+                "Check that the provided project information is correct.", err=True
+            )
+            click.echo(
+                "Alternatively, the project might not yet have logged in to SD Connect.",
+                err=True,
             )
         else:
             exc = cex
@@ -597,8 +617,8 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+    except sd_lock_utility.exceptions.NoProjectName:
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -619,6 +639,15 @@ async def wrap_push_headers(opts: sd_lock_utility.types.SDCommandBaseOptions):
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
+        return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)

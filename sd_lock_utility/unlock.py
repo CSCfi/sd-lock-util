@@ -13,10 +13,11 @@ import crypt4gh.lib
 import nacl.bindings
 import nacl.exceptions
 import nacl.public
+from botocore.exceptions import ClientError
 
-import sd_lock_utility.cli
 import sd_lock_utility.client
 import sd_lock_utility.common
+import sd_lock_utility.exceptions
 import sd_lock_utility.os_client
 import sd_lock_utility.s3_client
 import sd_lock_utility.types
@@ -79,7 +80,9 @@ async def unlock(
             opts, "Authenticating with Openstack."
         )
         await sd_lock_utility.os_client.openstack_get_token(session)
-
+    sd_lock_utility.common.conditional_echo_verbose(
+        opts, "Checking container share status."
+    )
     await sd_lock_utility.client.check_shared_status(session)
     if session["owner"]:
         sd_lock_utility.common.conditional_echo_debug(
@@ -95,16 +98,29 @@ async def unlock(
         sd_lock_utility.common.conditional_echo_verbose(
             opts, "Fetching a file listing from object storage..."
         )
+
         if opts["use_s3"]:
-            files_to_decrypt = await sd_lock_utility.s3_client.s3_get_container_objects(
-                session,
-                opts["prefix"],
-            )
+            try:
+                files_to_decrypt = (
+                    await sd_lock_utility.s3_client.s3_get_container_objects(
+                        session,
+                        opts["prefix"],
+                    )
+                )
+            except ClientError as e:
+                if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
+                    raise sd_lock_utility.exceptions.NoContainerAccess
+                raise e
         else:
-            files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(  # type: ignore
-                session,
-                opts["prefix"],
-            )
+            try:
+                files_to_decrypt = await sd_lock_utility.os_client.get_container_objects(  # type: ignore
+                    session,
+                    opts["prefix"],
+                )
+            except aiohttp.ClientResponseError as e:
+                if e.status in [403, 404]:
+                    raise sd_lock_utility.exceptions.NoContainerAccess
+                raise e
     elif (opts["path"].is_file()) or (
         not opts["no_content_download"] and not opts["path"].exists()
     ):
@@ -265,8 +281,8 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
-        click.echo("No Openstack project information was provided.", err=True)
+    except sd_lock_utility.exceptions.NoProjectName:
+        click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
         click.echo("No container was provided for uploads.", err=True)
@@ -328,6 +344,19 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         click.echo("Files that were already downloaded will not be removed.", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoContainerAccess:
+        click.echo("Container cannot be accessed.", err=True)
+        click.echo("Check that provided container name is correct.", err=True)
+        return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
@@ -342,19 +371,7 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
     finally:
         # Log unhandled exceptions but don't let them bubble
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret

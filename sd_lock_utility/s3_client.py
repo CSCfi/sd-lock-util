@@ -39,9 +39,9 @@ async def s3_check_container(
     try:
         await session["s3_client"].head_bucket(Bucket=container)
     except ClientError as e:
-        if e.response["Error"]["Code"] in ["403", "404"]:
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
             raise sd_lock_utility.exceptions.NoContainerAccess
-        if e.response["Error"]["Code"] in ["400"]:
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] == 400:
             raise sd_lock_utility.exceptions.S3IncompatibleBucketName
 
 
@@ -175,7 +175,9 @@ async def s3_upload_encrypted_file(
             MultipartUpload={"Parts": parts},
         )
         sd_lock_utility.common.conditional_echo_debug(opts, f"Upload complete for {key}")
-
+    except ClientError as e:
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
+            raise sd_lock_utility.exceptions.NoContainerAccess
     except (asyncio.CancelledError, Exception) as e:
         # multipart upload exists only if upload_id exists
         sd_lock_utility.common.conditional_echo_debug(
@@ -317,6 +319,6 @@ async def s3_add_bucket_policy(
             Policy=pol_json,
         )
     except ClientError as e:
-        if e.response["Error"]["Code"] in ["403", "404"]:
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
             raise sd_lock_utility.exceptions.NoContainerAccess
         raise e

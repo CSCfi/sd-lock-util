@@ -42,7 +42,7 @@ async def fix_header_permissions_uploader(
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("No Openstack project information was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -79,19 +79,7 @@ async def fix_header_permissions_uploader(
         click.echo("The project may not have yet logged in to SD Connect.", err=True)
     finally:
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret
@@ -223,7 +211,7 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
     except sd_lock_utility.exceptions.NoAddress:
         click.echo("No API address was provided.", err=True)
         return 3
-    except sd_lock_utility.exceptions.NoProject:
+    except sd_lock_utility.exceptions.NoProjectName:
         click.echo("No Openstack project information was provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
@@ -251,6 +239,15 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
     except asyncio.CancelledError:
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.")
+        return 3
+    except sd_lock_utility.exceptions.NoProjectId:
+        click.echo("Openstack project id was not provided.", err=True)
+        return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
@@ -267,19 +264,7 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
             exc = cex
     finally:
         if exc is not None:
-            click.echo("Program encountered an unhandled exception.", err=True)
-            click.echo(
-                "If you think there's a mistake, copy this message and lines after it, and include it in your support request for diagnostic purposes.",
-                err=True,
-            )
-            click.echo(
-                "If possible, include instructions on how to replicate the issue (what you did in order to make this happen)",
-                err=True,
-            )
-            click.echo("Exception details:", err=True)
-            click.echo(
-                "-------------------------- BEGIN EXCEPTION TRACEBACK --------------------------"
-            )
+            sd_lock_utility.common.print_traceback()
             raise exc
 
     return ret

@@ -112,7 +112,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
         self.mock_response.json.assert_awaited_once()
         self.assertEqual(ret, "creation-test-token")
 
-    async def test_slice_encrtypted_segment(self):
+    async def test_slice_encrypted_segment(self):
         """Test slice_encrypted_segment should open and slice a file."""
         mock_file_content = [b"", b"1", b"2", b"3", b"4", b"5"]
 
@@ -206,6 +206,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                     "Content-Length": "0",
                     "X-Auth-Token": "test-openstack-token",
                 },
+                "raise_for_status": False,
             },
         )
         self.test_session["client"].put.assert_any_call(
@@ -215,6 +216,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
                     "Content-Length": "0",
                     "X-Auth-Token": "test-openstack-token",
                 },
+                "raise_for_status": False,
             },
         )
 
@@ -241,6 +243,9 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
 
     async def test_openstack_upload_encrypted_segment(self):
         """Test that openstack_upload_encrypted_segment calls put."""
+        self.mock_response.status = 201
+        self.mock_response.raise_for_status = unittest.mock.Mock()
+
         patch_openstack_create_container = unittest.mock.patch(
             "sd_lock_utility.os_client.openstack_create_container",
             unittest.mock.AsyncMock(),
@@ -279,6 +284,7 @@ class TestOSClient(tests.mockups.SDLockUtilTestBase):
             **{
                 "data": "sliced_segment",
                 "headers": {"X-Auth-Token": "test-openstack-token"},
+                "raise_for_status": False,
                 "timeout": "mock_timeout",
             },
         )

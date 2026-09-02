@@ -9,8 +9,12 @@ class NoAddress(Exception):
     """No address was provided for establishing API connection."""
 
 
-class NoProject(Exception):
-    """No project was provided."""
+class NoProjectName(Exception):
+    """No project name was provided."""
+
+
+class NoProjectId(Exception):
+    """No project id was provided."""
 
 
 class NoOwner(Exception):
@@ -95,3 +99,11 @@ class ManifestMismatch(Exception):
 
 class NoOwnerOrOwnerNameProvided(Exception):
     """In isolated mode, missing either owner or owner name."""
+
+
+class NoOpenstackCredentials(Exception):
+    """Missing Openstack username and/or password."""
+
+
+class NoAuthenticationURL(Exception):
+    """Missing Openstack authentication URL."""
