@@ -41,6 +41,10 @@ class NoContainerAccess(Exception):
     """Could not access the required container."""
 
 
+class ContainerNotFound(Exception):
+    """Container does not exist."""
+
+
 class S3IncompatibleBucketName(Exception):
     """The chosen bucket name is incompatible for access using the S3 API."""
 
