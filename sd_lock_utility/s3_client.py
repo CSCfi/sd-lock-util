@@ -39,10 +39,12 @@ async def s3_check_container(
     try:
         await session["s3_client"].head_bucket(Bucket=container)
     except ClientError as e:
-        if e.response["ResponseMetadata"]["HTTPStatusCode"] in [403, 404]:
-            raise sd_lock_utility.exceptions.NoContainerAccess
         if e.response["ResponseMetadata"]["HTTPStatusCode"] == 400:
             raise sd_lock_utility.exceptions.S3IncompatibleBucketName
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] == 403:
+            raise sd_lock_utility.exceptions.NoContainerAccess
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] == 404:
+            raise sd_lock_utility.exceptions.ContainerNotFound
 
 
 async def s3_create_container(
@@ -66,9 +68,9 @@ async def s3_create_container(
             opts, f"Checking access to container {container}"
         )
         await s3_check_container(session, opts, container)
-    except sd_lock_utility.exceptions.NoContainerAccess:
+    except sd_lock_utility.exceptions.ContainerNotFound:
         sd_lock_utility.common.conditional_echo_debug(
-            opts, f"Could not access container {container}, trying to create"
+            opts, f"Container {container} not found, trying to create"
         )
         try:
             await session["s3_client"].create_bucket(Bucket=container)
