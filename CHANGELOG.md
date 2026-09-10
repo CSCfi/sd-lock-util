@@ -7,6 +7,10 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed attempt to create a bucket after head bucket request error 403 (#34)
+
 ## [2026.9.0] - 2026-09-02
 
 ### Added
