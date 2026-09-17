@@ -6,6 +6,6 @@ by itself.
 """
 
 __name__ = "sd_lock_utility"
-__version__ = "2026.9.0"
+__version__ = "2026.9.1"
 __author__ = "CSC Developers"
 __license__ = "MIT License"
