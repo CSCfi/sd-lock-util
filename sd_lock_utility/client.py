@@ -463,3 +463,39 @@ async def share_folder_to_project(
         ],
         prefix="/runner",
     )
+
+
+async def add_share_to_db(
+    session: sd_lock_utility.types.SDAPISession,
+    bucket: str,
+    receiver: str,
+    read: bool,
+    write: bool,
+    whitelisted: bool,
+):
+    """Add sharing entry to SD Connect sharing database.
+
+    @param read: True if "s3:GetObject" present in bucket policy statement actions
+    @param write: True if "s3:PutObject" present in bucket policy statement actions
+    """
+    access: str
+    if read and not write and not whitelisted:
+        access = "v"
+    elif read and not write and whitelisted:
+        access = "r"
+    elif read and write and whitelisted:
+        access = "r,w"
+    else:
+        raise sd_lock_utility.exceptions.InvalidShareAccess
+
+    await signed_fetch(
+        session=session,
+        path=f"/share/{session['openstack_project_id']}/{bucket}",
+        prefix="/sharing",
+        method="POST",
+        params={
+            "user": receiver,
+            "access": access,
+            "address": "none",
+        },
+    )

@@ -111,3 +111,7 @@ class NoOpenstackCredentials(Exception):
 
 class NoAuthenticationURL(Exception):
     """Missing Openstack authentication URL."""
+
+
+class InvalidShareAccess(Exception):
+    """Provided invalid share access."""
