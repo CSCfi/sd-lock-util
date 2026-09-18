@@ -433,7 +433,7 @@ async def check_folder_share_whitelist(
         ret_json=True,
     )
 
-    if "data" in ret:
+    if ret is not None:
         return ret["data"]
 
     return None
