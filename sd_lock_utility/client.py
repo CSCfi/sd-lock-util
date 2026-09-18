@@ -465,7 +465,7 @@ async def share_folder_to_project(
     )
 
 
-async def add_share_to_db(
+async def add_share_to_sharing_db(
     session: sd_lock_utility.types.SDAPISession,
     bucket: str,
     receiver: str,
