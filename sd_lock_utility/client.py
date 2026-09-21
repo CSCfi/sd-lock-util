@@ -433,7 +433,7 @@ async def check_folder_share_whitelist(
         ret_json=True,
     )
 
-    if "data" in ret:
+    if ret is not None:
         return ret["data"]
 
     return None
@@ -465,7 +465,7 @@ async def share_folder_to_project(
     )
 
 
-async def add_share_to_db(
+async def add_share_to_sharing_db(
     session: sd_lock_utility.types.SDAPISession,
     bucket: str,
     receiver: str,
