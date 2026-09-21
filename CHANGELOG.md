@@ -7,6 +7,14 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed fetching empty bucket share whitelist error
+
+### Changed
+
+- Changed function name
+
 ## [2026.9.1] - 2026-09-17
 
 ### Fixed
