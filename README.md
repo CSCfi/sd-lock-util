@@ -198,6 +198,10 @@ Options:
                              (development use only)
   --no-check-certificate     Don't check TLS certificate for authenticity.
                              (development use only)
+  --swift                    Use swift instead of s3.
+  --ec2-key TEXT             EC2 key.
+  --ec2-secret TEXT          EC2 secret.
+  --s3-endpoint-url TEXT     S3 endpoint url.
   --verbose                  Print more information.
   --debug                    Print debug information.
   --progress                 Display file progress information.
@@ -320,6 +324,10 @@ Options:
   --no-preserve-original     Remove original files after decrypting.
   --no-check-certificate     Don't check TLS certificate for authenticity.
                              (development use only)
+  --swift                    Use swift instead of s3.
+  --ec2-key TEXT             EC2 key.
+  --ec2-secret TEXT          EC2 secret.
+  --s3-endpoint-url TEXT     S3 endpoint url.
   --verbose                  Print more information.
   --debug                    Print debug information.
   --progress                 Display file progress information.
