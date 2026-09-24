@@ -291,9 +291,9 @@ async def get_public_key(session: sd_lock_utility.types.SDAPISession) -> str:
     if session["owner_name"]:
         ret = await signed_fetch(
             session,
-            f"/cryptic/{session['owner_name']}/keys",
+            f"/cryptic/{session['openstack_project_name']}/keys",
             params={
-                "for": session["openstack_project_name"],
+                "for": session["owner_name"],
             },
             prefix="/runner",
         )
