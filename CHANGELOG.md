@@ -7,6 +7,13 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.9.3] - 2026-09-24
+
+### Fixed
+
+- (users) uploads to shared buckets should work again in SD Connect v3
+- flip the meaning of active project and for parameter in query string
+
 ## [2026.9.2] - 2026-09-23
 
 ### Fixed
@@ -162,7 +169,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.2...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.3...HEAD
+[2026.9.3]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.2...2026.9.3
 [2026.9.2]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.1...2026.9.2
 [2026.9.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.0...2026.9.1
 [2026.9.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.8.2...2026.9.0
