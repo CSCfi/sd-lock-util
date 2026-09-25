@@ -178,7 +178,7 @@ Options:
 ➜ sd-lock --help
 Usage: sd-lock [OPTIONS] PATH
 
-  Lock a file or folder.
+  Lock a file or folder. Provided path needs to be relative and within the working directory.
 
 Options:
   --container TEXT           Container where the files will be uploaded.

@@ -100,6 +100,15 @@ def lock(
 ) -> None:
     """Lock a file or folder."""
     plpath = pathlib.Path(path)
+    if plpath.is_absolute():
+        click.echo(
+            f"Provided path '{path}' is absolute. Please provide a relative path.",
+            err=True,
+        )
+        sys.exit(3)
+    if ".." in plpath.parts:
+        click.echo(f"Path '{path}' must be within the working directory.", err=True)
+        sys.exit(3)
     if not plpath.exists():
         click.echo(f"Could not access the provided path '{path}'.", err=True)
         sys.exit(3)
