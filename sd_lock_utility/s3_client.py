@@ -296,6 +296,45 @@ async def s3_get_container_objects(
     return [(pathlib.Path("."), [], ret)]
 
 
+async def s3_get_bucket_policy(
+    opts: sd_lock_utility.types.SDCommandBaseOptions,
+    session: sd_lock_utility.types.SDAPISession,
+    bucket: str,
+) -> sd_lock_utility.types.AWSBucketPolicy:
+    """Get the current bucket policy of a bucket."""
+    if session["s3_client"] is None:
+        raise sd_lock_utility.exceptions.NoS3Client
+
+    sd_lock_utility.common.conditional_echo_debug(
+        opts, f"Fetching bucket policy for bucket {bucket}"
+    )
+
+    try:
+        resp = await session["s3_client"].get_bucket_policy(Bucket=bucket)
+        if resp["Policy"]:
+            try:
+                return json.loads(resp["Policy"])
+            except json.JSONDecodeError:
+                # Log incorrectly formatted json to debug, continue to empty return
+                sd_lock_utility.common.conditional_echo_debug(
+                    opts, f"Failed to decode policy {resp['Policy']}"
+                )
+                # Let execution continue, assume policy is empty or can be overridden
+    except ClientError as e:
+        if e.response["ResponseMetadata"]["HTTPStatusCode"] == 403:
+            raise sd_lock_utility.exceptions.NoContainerAccess
+        elif e.response["ResponseMetadata"]["HTTPStatusCode"] == 404:
+            # Let code proceed to returning empty policy if policy doesn't exists
+            pass
+        else:
+            raise e
+
+    return {
+        "Version": "2012-10-17",
+        "Statement": [],
+    }
+
+
 async def s3_add_bucket_policy(
     opts: sd_lock_utility.types.SDCommandBaseOptions,
     session: sd_lock_utility.types.SDAPISession,

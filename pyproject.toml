@@ -66,6 +66,7 @@ sd-fix-missing-headers = "sd_lock_utility.cli:fix_missing_headers"
 sd-migrate-headers = "sd_lock_utility.cli:migrate_headers"
 sd-migrate-sharing = "sd_lock_utility.cli:migrate_sharing"
 sd-push-headers = "sd_lock_utility.cli:push_headers"
+sd-fix-shared-bucket-segment-access = "sd_lock_utility.cli:fix_shared_bucket_segment_access"
 sd-lock-util = "sd_lock_utility.cli:wrap"
 
 [project.urls]
