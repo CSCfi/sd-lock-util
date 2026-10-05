@@ -6,6 +6,7 @@ import io
 import pathlib
 import typing
 
+import aioboto3
 import aiohttp
 import click
 import crypt4gh.header
@@ -15,6 +16,7 @@ import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.exceptions
 import sd_lock_utility.os_client
+import sd_lock_utility.s3_client
 import sd_lock_utility.types
 
 
@@ -240,13 +242,158 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
     except sd_lock_utility.exceptions.NoOpenstackCredentials:
-        click.echo("No Openstack username and/or password provided.")
+        click.echo("No Openstack username and/or password provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
-        click.echo("No Openstack authentication URL provided.")
+        click.echo("No Openstack authentication URL provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProjectId:
         click.echo("Openstack project id was not provided.", err=True)
+        return 3
+    except aiohttp.ClientResponseError as cex:
+        if cex.status == 401 and not opts["debug"]:
+            click.echo("Authentication was not successful.", err=True)
+            click.echo(
+                "Check that your SD Connect token is still valid and Openstack credentials are correct.",
+                err=True,
+            )
+        elif cex.status == 404 and not opts["debug"]:
+            click.echo("The queried project does not exist in cache.", err=True)
+            click.echo(
+                "The project might not yet have logged in to SD Connect.", err=True
+            )
+        else:
+            exc = cex
+    finally:
+        if exc is not None:
+            sd_lock_utility.common.print_traceback()
+            raise exc
+
+    return ret
+
+
+async def fix_owner_bucket_permission(
+    opts: sd_lock_utility.types.SDCommandBaseOptions,
+) -> int:
+    """Add the owner access preservation policy to the provided bucket."""
+    try:
+        session: sd_lock_utility.types.SDAPISession = (
+            await sd_lock_utility.client.open_session(
+                container=opts["container"],
+                address=opts["sd_connect_address"],
+                project_id=opts["project_id"],
+                project_name="placeholder",
+                owner=opts["owner"],
+                owner_name=opts["owner_name"],
+                token=opts["sd_api_token"],
+                os_auth_url=opts["openstack_auth_url"],
+                no_check_certificate=opts["no_check_certificate"],
+                use_s3=True,
+                ec2_access_key=opts["ec2_access_key"],
+                ec2_secret_key=opts["ec2_secret_key"],
+                s3_endpoint_url=opts["s3_endpoint_url"],
+            )
+        )
+    except sd_lock_utility.exceptions.NoToken:
+        click.echo("No API access token was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoAddress:
+        click.echo("No API address was provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoProjectName:
+        click.echo("Openstack project name was not provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoContainer:
+        click.echo("No bucket was provided as a source for the headers.", err=True)
+        return 3
+
+    exc: typing.Any = None
+    ret = 0
+    try:
+        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+            session["client"] = cs
+
+            # Check that s3 is available
+            if not sd_lock_utility.client.check_session_s3_params(session):
+                try:
+                    # If  we're using token auth, retrieving s3 creds requires uid to be present
+                    if session["openstack_token"] and not session["openstack_user_id"]:
+                        click.echo("Openstack user id is required if token auth is used.")
+                        return 3
+                    if not session["openstack_token"] or not session["openstack_user_id"]:
+                        # Init openstack token for retrieval if necessary
+                        await sd_lock_utility.os_client.openstack_get_token(session)
+                    await sd_lock_utility.os_client.init_s3_credentials(session)
+                except sd_lock_utility.exceptions.NoS3Access:
+                    click.echo(
+                        "Using S3, but could not initialize credentials.",
+                        err=True,
+                    )
+                    click.echo(
+                        "Provide S3 credentials using the command line or environment.",
+                        err=True,
+                    )
+                    click.echo(
+                        "Alternatively provide Openstack auth information for automatic S3 configuration.",
+                        err=True,
+                    )
+                    return 3
+                except sd_lock_utility.exceptions.NoProjectId:
+                    click.echo("Openstack project id was not provided.", err=True)
+                    return 3
+
+            async with aioboto3.Session().client(
+                service_name="s3",
+                endpoint_url=session["s3_endpoint_url"],
+                aws_access_key_id=session["ec2_access_key"],
+                aws_secret_access_key=session["ec2_secret_key"],
+            ) as s3:
+                session["s3_client"] = s3
+
+                # Retrieve the old policy
+                policy: sd_lock_utility.types.AWSBucketPolicy = (
+                    await sd_lock_utility.s3_client.s3_get_bucket_policy(
+                        opts, session, opts["container"]
+                    )
+                )
+                sd_lock_utility.common.conditional_echo_debug(
+                    opts, f"Old policy: {policy}"
+                )
+
+                # Check if the old policy already contains the access preservation
+                for statement in policy["Statement"]:
+                    if statement["Sid"] == "GrantSDConnectPreserveOwnerAccess":
+                        click.echo("Owner access preservation policy already exists.")
+                        return 0
+
+                # Append the preservation statement to the policy, and update
+                policy["Statement"].append(
+                    {
+                        "Sid": "GrantSDConnectPreserveOwnerAccess",
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": f"arn:aws:iam::{session['openstack_project_id']}:root",
+                        },
+                        "Action": [
+                            "s3:*",
+                        ],
+                        "Resource": [
+                            f"arn:aws:s3:::{session['container']}",
+                            f"arn:aws:s3:::{session['container']}/*",
+                        ],
+                    }
+                )
+                ret = await sd_lock_utility.s3_client.s3_add_bucket_policy(
+                    opts, session, opts["container"], policy
+                )
+    except asyncio.CancelledError:
+        click.echo("Received a keyboard interrupt, aborting...", err=True)
+        return 0
+    except sd_lock_utility.exceptions.NoOpenstackCredentials:
+        click.echo("No Openstack username and/or password provided.", err=True)
+        return 3
+    except sd_lock_utility.exceptions.NoAuthenticationURL:
+        click.echo("No Openstack authentication URL provided.", err=True)
         return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:

@@ -844,6 +844,75 @@ def push_headers(
     sys.exit(ret)
 
 
+@click.command()
+@click.option(
+    "--project-id", default="", help="Project id of the project used when fixing."
+)
+@click.option(
+    "--no-check-certificate",
+    is_flag=True,
+    help="Don't check TLS certificate for authenticity. (development use only)",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Print more information.",
+)
+@click.option("--debug", is_flag=True, help="Print debug information.")
+@click.option("--ec2-key", default="", help="EC2 key.")
+@click.option("--ec2-secret", default="", help="EC2 secret.")
+@click.option("--s3-endpoint-url", default="", help="S3 endpoint url.")
+@click.argument("bucket")
+def fix_shared_bucket_segment_access(
+    bucket: str,
+    project_id: str,
+    no_check_certificate: bool,
+    verbose: bool,
+    debug: bool,
+    ec2_key: str,
+    ec2_secret: str,
+    s3_endpoint_url: str,
+) -> None:
+    """Add owner access preservation policy to a bucket.
+
+    Command is used to fix the access rights issues arising from data being
+    uploaded by another project to a shared bucket. The original bucket owner
+    will need to share the bucket to self to enable proper file access due to
+    the way object ownership works in s3 (at least on Allas). Adding said
+    policy fixes the incorrect HTTP 403 on object access when using a dataset
+    shared by you in SD Connect or SD Desktop before conversion.
+    """
+    opts: sd_lock_utility.types.SDCommandBaseOptions = {
+        "container": bucket,
+        "project_id": project_id,
+        "project_name": "",
+        "owner": "",
+        "owner_name": "",
+        "openstack_auth_url": "",
+        "sd_connect_address": "",
+        "sd_api_token": "",
+        "prefix": "",
+        "path": pathlib.Path("."),
+        "progress": False,
+        "no_preserve_original": False,
+        "no_check_certificate": no_check_certificate,
+        "debug": debug,
+        "verbose": verbose,
+        "use_s3": True,
+        "ec2_access_key": ec2_key,  # nosec
+        "ec2_secret_key": ec2_secret,  # nosec
+        "s3_endpoint_url": s3_endpoint_url,  # nosec
+    }
+
+    ret = 0
+    try:
+        ret = asyncio.run(sd_lock_utility.sharing.fix_owner_bucket_permission(opts))
+    except KeyboardInterrupt:
+        ret = 0
+
+    sys.exit(ret)
+
+
 @click.group()
 @click.version_option()
 def wrap():
@@ -860,6 +929,7 @@ wrap.add_command(fix_missing_headers)
 wrap.add_command(migrate_headers)
 wrap.add_command(migrate_sharing)
 wrap.add_command(push_headers)
+wrap.add_command(fix_shared_bucket_segment_access)
 
 
 if __name__ == "__main__":
