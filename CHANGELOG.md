@@ -7,6 +7,12 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-05
+
+### Fixed
+
+- (users) `sd-lock-util fix-shared-bucket-segment-access` no longer fails if `SD_CONNECT_API_TOKEN` and `SD_CONNECT_API_ADDRESS` are undefined.
+
 ## [2026.10.0] - 2026-10-05
 
 ### Added
@@ -185,7 +191,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.0...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.1...HEAD
+[2026.10.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.0...2026.10.1
 [2026.10.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.4...2026.10.0
 [2026.9.4]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.3...2026.9.4
 [2026.9.3]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.2...2026.9.3
