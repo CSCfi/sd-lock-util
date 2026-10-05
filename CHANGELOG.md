@@ -7,6 +7,12 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.10.0] - 2026-10-05
+
+### Added
+
+- (users) `sd-lock-util` can now be used to fix segment access in shared buckets for s3
+
 ## [2026.9.4] - 2026-09-25
 
 ### Fixed
@@ -179,7 +185,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.4...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.0...HEAD
+[2026.10.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.4...2026.10.0
 [2026.9.4]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.3...2026.9.4
 [2026.9.3]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.2...2026.9.3
 [2026.9.2]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.1...2026.9.2
