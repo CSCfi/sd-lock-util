@@ -242,10 +242,10 @@ async def fix_header_permissions_owner(opts: sd_lock_utility.types.SDCommandBase
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
     except sd_lock_utility.exceptions.NoOpenstackCredentials:
-        click.echo("No Openstack username and/or password provided.")
+        click.echo("No Openstack username and/or password provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
-        click.echo("No Openstack authentication URL provided.")
+        click.echo("No Openstack authentication URL provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoProjectId:
         click.echo("Openstack project id was not provided.", err=True)
@@ -304,7 +304,8 @@ async def fix_owner_bucket_permission(
         click.echo("Openstack project name was not provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoContainer:
-        click.echo("No bucket was provided as a source for the headers.")
+        click.echo("No bucket was provided as a source for the headers.", err=True)
+        return 3
 
     exc: typing.Any = None
     ret = 0
@@ -324,12 +325,17 @@ async def fix_owner_bucket_permission(
                         await sd_lock_utility.os_client.openstack_get_token(session)
                     await sd_lock_utility.os_client.init_s3_credentials(session)
                 except sd_lock_utility.exceptions.NoS3Access:
-                    click.echo("Using S3, but could not initialize credentials.")
                     click.echo(
-                        "Provide S3 credentials using the command line or environment."
+                        "Using S3, but could not initialize credentials.",
+                        err=True,
                     )
                     click.echo(
-                        "Alternatively provide Openstack auth information for automatic S3 configuration."
+                        "Provide S3 credentials using the command line or environment.",
+                        err=True,
+                    )
+                    click.echo(
+                        "Alternatively provide Openstack auth information for automatic S3 configuration.",
+                        err=True,
                     )
                     return 3
                 except sd_lock_utility.exceptions.NoProjectId:
@@ -384,10 +390,11 @@ async def fix_owner_bucket_permission(
         click.echo("Received a keyboard interrupt, aborting...", err=True)
         return 0
     except sd_lock_utility.exceptions.NoOpenstackCredentials:
-        click.echo("No Openstack username and/or password provided.")
+        click.echo("No Openstack username and/or password provided.", err=True)
         return 3
     except sd_lock_utility.exceptions.NoAuthenticationURL:
-        click.echo("No Openstack authentictaion URL provided.")
+        click.echo("No Openstack authentication URL provided.", err=True)
+        return 3
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
