@@ -217,9 +217,16 @@ async def convert_bucket_acl(
 
         statements.append(new_statement)
 
+    # Verify there's no existing policy in the new bucket
+    old_policy = await sd_lock_utility.s3_client.s3_get_bucket_policy(
+        opts, session, opts["to_bucket"]
+    )
+
+    # Safe to add old policy statements directly on the new one, as getter
+    # defaults to empty statement list if statments don't exist.
     policy: sd_lock_utility.types.AWSBucketPolicy = {
         "Version": "2012-10-17",
-        "Statement": statements,
+        "Statement": statements + old_policy["Statement"],
     }
 
     # Add the new bucket policy to the new bucket
