@@ -7,6 +7,13 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.10.2] - 2026-10-05
+
+### Fixed
+
+- (users) bucket acl conversion is overwriting CLI owner access preservation in bucket policies
+- bucket acl conversion is overwriting CLI owner access preservation in bucket policies
+
 ## [2026.10.1] - 2026-10-05
 
 ### Fixed
@@ -191,7 +198,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.1...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.2...HEAD
+[2026.10.2]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.1...2026.10.2
 [2026.10.1]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.0...2026.10.1
 [2026.10.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.4...2026.10.0
 [2026.9.4]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.9.3...2026.9.4
