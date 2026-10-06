@@ -293,6 +293,7 @@ async def fix_owner_bucket_permission(
                 ec2_secret_key=opts["ec2_secret_key"],
                 s3_endpoint_url=opts["s3_endpoint_url"],
                 isolated=True,
+                pubkey="placeholder",
             )
         )
     except sd_lock_utility.exceptions.NoToken:
