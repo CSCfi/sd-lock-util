@@ -914,10 +914,12 @@ def fix_shared_bucket_segment_access(
 
 
 @click.group()
-@click.version_option()
+@click.version_option(version=sd_lock_utility.__version__)
 def wrap():
     """Group CLI functions into a single tool to simplify using pyinstaller."""
-    pass
+    click.echo(
+        f"{sd_lock_utility.__name__} version {sd_lock_utility.__version__}", err=True
+    )
 
 
 wrap.add_command(lock)
