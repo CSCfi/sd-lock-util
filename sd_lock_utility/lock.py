@@ -302,6 +302,12 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
                 ssl=sd_lock_utility.common.get_ssl_context(session),
             ),
             raise_for_status=True,
+            timeout=aiohttp.ClientTimeout(
+                total=(3600 * 8),  # Allow request to run for 8 hours
+                connect=240,
+                sock_connect=60,
+                sock_read=600,
+            ),
         ) as cs:
             session["client"] = cs
             if session["use_s3"]:
