@@ -323,10 +323,11 @@ async def s3_get_bucket_policy(
     except ClientError as e:
         if e.response["ResponseMetadata"]["HTTPStatusCode"] == 403:
             raise sd_lock_utility.exceptions.NoContainerAccess
-        elif e.response["ResponseMetadata"]["HTTPStatusCode"] == 404:
+        elif e.response["Error"]["Code"] == "NoSuchBucketPolicy":
             # Let code proceed to returning empty policy if policy doesn't exists
             pass
         else:
+            # Includes NoSuchBucket
             raise e
 
     return {
