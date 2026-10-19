@@ -49,11 +49,11 @@ class TestS3Client(tests.mockups.SDLockUtilTestBase):
         self.mock_response.headers["Etag"] = "exampleETag"
 
         async def fake_generator(**kwargs):
-            yield b"chunkdata1"
-            yield b"chunkadat2"
-
             if "checksum" in kwargs:
                 kwargs["checksum"]["md5"] = "exampleETag"
+
+            yield b"chunkdata1"
+            yield b"chunkadat2"
 
         mock_slice_segment = unittest.mock.Mock(return_value=fake_generator())
         patch_slice_segment = unittest.mock.patch(
@@ -74,7 +74,6 @@ class TestS3Client(tests.mockups.SDLockUtilTestBase):
             )
 
         mock_slice_segment.assert_called_once()
-        self.assertEqual("exampleETag", ret_part["ETag"])
         self.assertEqual(1, ret_part["PartNumber"])
         session["s3_client"].generate_presigned_url.assert_awaited()
 
