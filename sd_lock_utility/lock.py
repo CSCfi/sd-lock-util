@@ -129,6 +129,11 @@ async def lock(
         if not pubkey_str:
             raise sd_lock_utility.exceptions.NoKey
 
+    # Verify that the bucket shared information was retrieved if forced sharing
+    # is enabled
+    if opts["force_shared_upload"] and not (session["owner"] and session["owner_name"]):
+        raise sd_lock_utility.exceptions.ForcingSharedUploadToOwnedBucket
+
     pubkey = base64.urlsafe_b64decode(pubkey_str)
     sd_lock_utility.common.conditional_echo_debug(
         opts,
@@ -378,13 +383,19 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             "Please provide or omit both owner and owner name in isolated mode.", err=True
         )
         return 6
+    except sd_lock_utility.exceptions.ForcingSharedUploadToOwnedBucket:
+        click.echo(
+            "Shared upload was forced but bucket does not seem shared.",
+            err=True,
+        )
+        return 7
     except sd_lock_utility.exceptions.NoContainerAccess:
         click.echo("Could not access the provided container.")
         click.echo("Check that it exists and you have sufficient permissions.")
-        return 7
+        return 8
     except sd_lock_utility.exceptions.ContainerCreationFailed:
         click.echo("Could not create container/bucket for upload.", err=True)
-        return 8
+        return 9
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)

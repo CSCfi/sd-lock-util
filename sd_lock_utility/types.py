@@ -86,6 +86,7 @@ class SDLockOptions(SDCommandBaseOptions):
     no_content_upload: bool
     isolated: bool
     pubkey: str
+    force_shared_upload: bool
 
 
 class SDUnlockOptions(SDCommandBaseOptions):

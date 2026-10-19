@@ -102,6 +102,7 @@ class TestCliFunctions(unittest.TestCase):
                     "--project-public-key",
                     "test-public-key",
                     "test-path",
+                    "--force-shared-upload",
                 ],
             )
 
@@ -129,6 +130,7 @@ class TestCliFunctions(unittest.TestCase):
                 "s3_endpoint_url": "test-s3-address",
                 "isolated": True,
                 "pubkey": "test-public-key",
+                "force_shared_upload": True,
             }
         )
         self.mock_asyncio_run.assert_called_once_with(0)

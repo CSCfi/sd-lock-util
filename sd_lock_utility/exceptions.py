@@ -105,6 +105,10 @@ class NoOwnerOrOwnerNameProvided(Exception):
     """In isolated mode, missing either owner or owner name."""
 
 
+class ForcingSharedUploadToOwnedBucket(Exception):
+    """When forcing shared upload, trying to upload to a non-shared bucket."""
+
+
 class NoOpenstackCredentials(Exception):
     """Missing Openstack username and/or password."""
 
