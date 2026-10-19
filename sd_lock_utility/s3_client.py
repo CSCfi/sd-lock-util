@@ -1,12 +1,9 @@
 """Functions for accessing s3."""
 
 import asyncio
-import hashlib
 import json
 import pathlib
-import secrets
 import typing
-from io import BytesIO
 
 import aiobotocore.response
 import aiofiles
@@ -19,12 +16,14 @@ from types_aiobotocore_s3.type_defs import CompletedPartTypeDef
 import sd_lock_utility.client
 import sd_lock_utility.common
 import sd_lock_utility.exceptions
+import sd_lock_utility.os_client
 import sd_lock_utility.types
 
 # Size of ciperthext of encrypted c4gh chunk
-C4GH_CIPETHERTEXT_SIZE: int = 65536
+C4GH_CIPHERTEXT_SIZE: int = 65536
 # Ciphertext + nonce + tag
-C4GH_CHUNK_SIZE: int = C4GH_CIPETHERTEXT_SIZE + 12 + 16
+C4GH_CHUNK_SIZE: int = C4GH_CIPHERTEXT_SIZE + 12 + 16
+CHUNKS_PER_PART: int = 5000
 
 
 async def s3_check_container(
@@ -83,51 +82,91 @@ async def s3_create_container(
         raise sd_lock_utility.exceptions.ContainerCreationFailed
 
 
-async def encrypt_and_slice_file(
+async def s3_upload_encrypted_part(
     opts: sd_lock_utility.types.SDLockOptions,
     session: sd_lock_utility.types.SDAPISession,
+    key: str,
+    order_number: int,
+    length: int,
     file: sd_lock_utility.types.SDUtilFile,
+    upload_id: str,
     bar: typing.Any,
-) -> typing.AsyncGenerator[bytes, None]:
-    """Slice a file into an async generator of encrypted chunks ready for multipart upload."""
-    multipart_upload_size: int = C4GH_CHUNK_SIZE * 1000
-    multipart_chunk: bytes = b""
-    try:
-        async with aiofiles.open(file["localpath"], "rb") as f:
-            while True:
-                chunk = await f.read(C4GH_CIPETHERTEXT_SIZE)
-                if not chunk:
-                    yield multipart_chunk
+) -> CompletedPartTypeDef:
+    """Upload a sliced encrypted segment to s3 using multipart upload."""
+    if session["s3_client"]:
+        part_url: str = await session["s3_client"].generate_presigned_url(
+            ClientMethod="upload_part",
+            Params={
+                "Bucket": session["container"],
+                "Key": key,
+                "PartNumber": order_number + 1,
+                "UploadId": upload_id,
+                # "ChecksumMD5": migration_object_part["ETag"],
+            },
+            ExpiresIn=(3600 * 4),  # Expire the URL in 4 hours
+        )
+    else:
+        raise sd_lock_utility.exceptions.NoS3Client
 
-                    return
+    checksum: sd_lock_utility.types.LockUtilChecksum = {"md5": ""}
+    sd_lock_utility.common.conditional_echo_debug(
+        opts,
+        f"Attempting presigned part upload for {key}, part {order_number}, size {length}.",
+    )
 
-                nonce = secrets.token_bytes(12)
-                segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
-                    chunk,
-                    None,
-                    nonce,
-                    file["session_key"],
-                )
-                if bar:
-                    bar.update(len(chunk))
+    if not session["client"]:
+        raise sd_lock_utility.exceptions.NoClient
 
-                multipart_chunk += nonce + segment
-                if len(multipart_chunk) >= multipart_upload_size:
-                    yield multipart_chunk
-                    multipart_chunk = b""
+    async with session["client"].put(
+        part_url,
+        headers={
+            "Content-Length": str(length),
+        },
+        data=sd_lock_utility.os_client.slice_encrypted_segment(
+            opts, session, file, order_number, bar, CHUNKS_PER_PART, checksum
+        ),
+    ) as resp:
+        if not checksum["md5"]:
+            sd_lock_utility.common.conditional_echo_verbose(
+                opts, "Got no ETag from slicer."
+            )
+        elif checksum["md5"] != resp.headers["Etag"].replace('"', ""):
+            sd_lock_utility.common.conditional_echo_verbose(
+                opts,
+                f"Calculated ETag {checksum['md5']} and response ETag {resp.headers['Etag']} mismatch.",  # nosec  # noqa: S324
+            )
+        else:
+            sd_lock_utility.common.conditional_echo_debug(
+                opts,
+                f"Calculated ETag {checksum['md5']} and response ETag {resp.headers['Etag']} match.",  # nosec  # noqa: S324
+            )
 
-    except Exception as e:
-        sd_lock_utility.common.conditional_echo_debug(opts, f"Error slicing file: {e}")
-        raise
+        return {
+            "PartNumber": order_number + 1,
+            "ETag": checksum["md5"],
+        }
+
+
+def get_last_segment_size(
+    size: int,
+) -> int:
+    """Calculate the size of the last segment."""
+    last_ciphertext_size = size % (C4GH_CIPHERTEXT_SIZE * CHUNKS_PER_PART)
+    last_chunk_size = last_ciphertext_size // C4GH_CIPHERTEXT_SIZE * C4GH_CHUNK_SIZE
+    if last_ciphertext_size % C4GH_CIPHERTEXT_SIZE > 0:
+        last_chunk_size += last_ciphertext_size % C4GH_CIPHERTEXT_SIZE + 12 + 16
+
+    return last_chunk_size
 
 
 async def s3_upload_encrypted_file(
     opts: sd_lock_utility.types.SDLockOptions,
     session: sd_lock_utility.types.SDAPISession,
     file: sd_lock_utility.types.SDUtilFile,
+    size: int,
     bar: typing.Any,
 ) -> None:
-    """Upload a sliced encrypted segment to S3 using multipart upload."""
+    """Upload an encrypted file using s3."""
     if session["s3_client"] is None:
         raise sd_lock_utility.exceptions.NoS3Client
 
@@ -143,28 +182,23 @@ async def s3_upload_encrypted_file(
         upload_id = mpu["UploadId"]
         parts: list[CompletedPartTypeDef] = []
 
-        part_number: int = 1
-        async for chunk in encrypt_and_slice_file(opts, session, file, bar):
-            if not chunk:
-                break
-            sd_lock_utility.common.conditional_echo_debug(
-                opts, f"Uploading a chunk of size {len(chunk)}"
+        total_parts = -(-size // (CHUNKS_PER_PART * C4GH_CIPHERTEXT_SIZE))
+        for order_number in range(0, total_parts):
+            new_part: CompletedPartTypeDef = await s3_upload_encrypted_part(
+                opts,
+                session,
+                key,
+                order_number,
+                (
+                    C4GH_CHUNK_SIZE * CHUNKS_PER_PART
+                    if order_number < total_parts - 1
+                    else get_last_segment_size(size)
+                ),
+                file,
+                upload_id,
+                bar,
             )
-            resp = await session["s3_client"].upload_part(
-                ContentLength=len(chunk),
-                Bucket=bucket,
-                Key=key,
-                PartNumber=part_number,
-                UploadId=upload_id,
-                Body=BytesIO(chunk),
-            )
-            if hashlib.md5(chunk).hexdigest() not in resp["ETag"]:  # nosec  # noqa: S324
-                sd_lock_utility.common.conditional_echo_debug(
-                    opts,
-                    f"Calculated ETag {hashlib.md5(chunk).hexdigest()} and response ETag {resp['ETag']} mismatch",  # nosec  # noqa: S324
-                )
-            parts.append({"PartNumber": part_number, "ETag": str(resp["ETag"])})
-            part_number += 1
+            parts.append(new_part)
 
         sd_lock_utility.common.conditional_echo_debug(
             opts, f"Attempting to complete multipart upload for {key}"
