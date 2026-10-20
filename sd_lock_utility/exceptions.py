@@ -25,6 +25,10 @@ class NoContainer(Exception):
     """No container was provided."""
 
 
+class NoSegmentsContainer(Exception):
+    """No segments container was available for a forced shared upload."""
+
+
 class NoDestinationBucket(Exception):
     """No destination bucket was provided."""
 
@@ -103,6 +107,10 @@ class ManifestMismatch(Exception):
 
 class NoOwnerOrOwnerNameProvided(Exception):
     """In isolated mode, missing either owner or owner name."""
+
+
+class ForcingSharedUploadToOwnedBucket(Exception):
+    """When forcing shared upload, trying to upload to a non-shared bucket."""
 
 
 class NoOpenstackCredentials(Exception):

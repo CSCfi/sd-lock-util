@@ -1,6 +1,7 @@
 """Functions for accessing openstack."""
 
 import asyncio
+import hashlib
 import pathlib
 import secrets
 import time
@@ -194,16 +195,20 @@ async def slice_encrypted_segment(
     file: sd_lock_utility.types.SDUtilFile,
     order: int,
     bar: typing.Any,
+    chunks_per_segment: int = 81885,
+    checksum: sd_lock_utility.types.LockUtilChecksum | None = None,
 ) -> typing.AsyncGenerator[bytes, None]:
     """Slice a file into an async generator of encrypted chunks."""
-    done: int = 5366415360 * order
+    hasher = hashlib.md5()  # nosec  # noqa: S324
+
+    done: int = 65536 * chunks_per_segment * order
     try:
         async with aiofiles.open(file["localpath"], "rb") as f:
             await f.seek(done)
-            for _ in range(0, 81885):
+            for _ in range(0, chunks_per_segment):
                 chunk = await f.read(65536)
                 if not chunk:
-                    return
+                    break
                 nonce = secrets.token_bytes(12)
                 segment = nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt(
                     chunk,
@@ -214,7 +219,13 @@ async def slice_encrypted_segment(
                 done += len(chunk)
                 if bar:
                     bar.update(len(chunk))
+
+                hasher.update(nonce + segment)
+
                 yield nonce + segment
+
+            if checksum is not None:
+                checksum["md5"] = hasher.hexdigest()
     except asyncio.CancelledError:
         raise StopAsyncIteration
 

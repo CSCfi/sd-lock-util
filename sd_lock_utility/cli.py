@@ -53,7 +53,7 @@ import sd_lock_utility.unlock
 @click.option(
     "--swift",
     is_flag=True,
-    help="Use swift instead of s3.",
+    help="DEPRECATED: Use swift instead of s3.",
 )
 @click.option("--ec2-key", default="", help="EC2 key.")
 @click.option("--ec2-secret", default="", help="EC2 secret.")
@@ -72,6 +72,11 @@ import sd_lock_utility.unlock
 @click.option("--debug", is_flag=True, help="Print debug information.")
 @click.option(
     "--progress/--no-progress", default=True, help="Display file progress information."
+)
+@click.option(
+    "--force-shared-upload",
+    is_flag=True,
+    help="Force SD Lock Util to treat the bucket as shared.",
 )
 @click.argument("path")
 def lock(
@@ -97,6 +102,7 @@ def lock(
     project_public_key: str,
     debug: bool,
     progress: bool,
+    force_shared_upload: bool,
 ) -> None:
     """Lock a file or folder."""
     plpath = pathlib.Path(path)
@@ -140,6 +146,7 @@ def lock(
         "s3_endpoint_url": s3_endpoint_url,
         "isolated": isolated,
         "pubkey": project_public_key,
+        "force_shared_upload": force_shared_upload,
     }
 
     ret = 0
@@ -331,7 +338,7 @@ def check_id(
 @click.option(
     "--swift",
     is_flag=True,
-    help="Use swift instead of s3.",
+    help="DEPRECATED: Use swift instead of s3.",
 )
 @click.option("--ec2-key", default="", help="EC2 key.")
 @click.option("--ec2-secret", default="", help="EC2 secret.")

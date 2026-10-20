@@ -9,6 +9,8 @@ import typing
 
 import aioboto3
 import aiohttp
+import aiohttp.client_exceptions
+import botocore.config
 import click
 import crypt4gh.header
 import nacl.bindings
@@ -59,6 +61,7 @@ async def process_file_lock(
             opts,
             session,
             enfile,
+            size,
             bar,
         )
 
@@ -70,14 +73,19 @@ async def process_file_lock(
             opts, f"Uploading the file in {total_segments} segments"
         )
         for object_segment in range(0, total_segments):
-            await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
-                opts,
-                session,
-                enfile,
-                object_segment,
-                segments_uuid,
-                bar,
-            )
+            try:
+                await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
+                    opts,
+                    session,
+                    enfile,
+                    object_segment,
+                    segments_uuid,
+                    bar,
+                )
+            except aiohttp.client_exceptions.ClientResponseError as e:
+                if e.status == 404:
+                    # Couldn't find the segments bucket
+                    raise sd_lock_utility.exceptions.NoSegmentsContainer
 
         sd_lock_utility.common.conditional_echo_debug(
             opts, f"Generating a DLO manifest for {enfile['path']}.c4gh"
@@ -128,6 +136,11 @@ async def lock(
         pubkey_str = await sd_lock_utility.client.get_public_key(session)
         if not pubkey_str:
             raise sd_lock_utility.exceptions.NoKey
+
+    # Verify that the bucket shared information was retrieved if forced sharing
+    # is enabled
+    if opts["force_shared_upload"] and not (session["owner"] and session["owner_name"]):
+        raise sd_lock_utility.exceptions.ForcingSharedUploadToOwnedBucket
 
     pubkey = base64.urlsafe_b64decode(pubkey_str)
     sd_lock_utility.common.conditional_echo_debug(
@@ -345,6 +358,10 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
                     endpoint_url=session["s3_endpoint_url"],
                     aws_access_key_id=session["ec2_access_key"],
                     aws_secret_access_key=session["ec2_secret_key"],
+                    config=botocore.config.Config(
+                        signature_version="s3v4",
+                        s3={"addressing_style": "virtual"},
+                    ),
                 ) as s3:
                     session["s3_client"] = s3
                     ret = await lock(opts, session)
@@ -378,13 +395,28 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
             "Please provide or omit both owner and owner name in isolated mode.", err=True
         )
         return 6
+    except sd_lock_utility.exceptions.ForcingSharedUploadToOwnedBucket:
+        click.echo(
+            "Shared upload was forced but bucket does not seem shared.",
+            err=True,
+        )
+        return 7
     except sd_lock_utility.exceptions.NoContainerAccess:
         click.echo("Could not access the provided container.")
         click.echo("Check that it exists and you have sufficient permissions.")
-        return 7
+        return 8
     except sd_lock_utility.exceptions.ContainerCreationFailed:
         click.echo("Could not create container/bucket for upload.", err=True)
-        return 8
+        return 9
+    except sd_lock_utility.exceptions.NoSegmentsContainer:
+        click.echo(
+            "Forced shared upload using swift, but no segments bucket exists.", err=True
+        )
+        click.echo(
+            "Swift uploads are deprecated, try uploading in s3 mode (i.e. without --swift)",
+            err=True,
+        )
+        return 10
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)

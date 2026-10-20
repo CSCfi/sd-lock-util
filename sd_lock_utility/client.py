@@ -9,6 +9,7 @@ import time
 import typing
 
 import aiohttp
+import click
 
 import sd_lock_utility.exceptions
 import sd_lock_utility.types
@@ -203,6 +204,17 @@ async def open_session(
 
     if not ret["container"]:
         raise sd_lock_utility.exceptions.NoContainer
+
+    # Swift is marked deprecated
+    if not ret["use_s3"]:
+        click.echo(
+            "SD Lock Util with Swift API has been deprecated. Some features will be broken.",
+            err=True,
+        )
+        click.echo(
+            "Unless you are sure you want to use the Swift API, removing --swift flag is recommended.",
+            err=True,
+        )
 
     return ret
 

@@ -38,73 +38,65 @@ class TestS3Client(tests.mockups.SDLockUtilTestBase):
             Bucket=session["container"]
         )
 
-    async def test_encrypt_and_slice_file(self):
-        """Test slice_encrypted_segment should open and slice a file."""
-        mock_file_content = [b"", b"1", b"2"]
+    async def test_s3_upload_encrypted_part_success(self):
+        """Test s3_upload_encrypted_part function."""
+        session = self.test_session
+        session["s3_client"] = unittest.mock.AsyncMock()
+        opts = {"debug": False, "verbose": False}
 
-        async def mock_file_read(len: int) -> bytes:
-            return mock_file_content.pop()
+        session["s3_client"].generate_presigned_url.return_value = "https://test-url"
 
-        mock_file = types.SimpleNamespace(
-            **{
-                "read": mock_file_read,
-            }
+        self.mock_response.headers["Etag"] = "exampleETag"
+
+        async def fake_generator(**kwargs):
+            if "checksum" in kwargs:
+                kwargs["checksum"]["md5"] = "exampleETag"
+
+            yield b"chunkdata1"
+            yield b"chunkadat2"
+
+        mock_slice_segment = unittest.mock.Mock(return_value=fake_generator())
+        patch_slice_segment = unittest.mock.patch(
+            "sd_lock_utility.s3_client.sd_lock_utility.os_client.slice_encrypted_segment",
+            mock_slice_segment,
         )
 
-        mock_aiofiles = unittest.mock.Mock(return_value=self.mock_handler(mock_file))
-        patch_aiofiles = unittest.mock.patch(
-            "sd_lock_utility.s3_client.aiofiles.open", mock_aiofiles
-        )
-
-        mock_urandom = unittest.mock.Mock(return_value=b"123456789012")
-        patch_urandom = unittest.mock.patch(
-            "sd_lock_utility.s3_client.secrets.token_bytes", mock_urandom
-        )
-
-        mock_encrypt = unittest.mock.Mock(return_value=b"test-encrypted")
-        patch_encrypt = unittest.mock.patch(
-            "sd_lock_utility.s3_client.nacl.bindings.crypto_aead_chacha20poly1305_ietf_encrypt",
-            mock_encrypt,
-        )
-
-        ret = []
-        with patch_aiofiles, patch_urandom, patch_encrypt:
-            async for seg in sd_lock_utility.s3_client.encrypt_and_slice_file(
-                {"progress": True},
-                self.test_session,
-                {
-                    "path": "test-path",
-                    "localpath": "test-path",
-                    "session_key": "test-key",
-                },
+        with patch_slice_segment:
+            ret_part = await sd_lock_utility.s3_client.s3_upload_encrypted_part(
+                opts,
+                session,
+                "test-key",
+                0,
+                15000,
+                {"path": "test/path"},
+                "test-upload-id",
                 None,
-            ):
-                ret.append(seg)
+            )
 
-        mock_urandom.assert_called_with(12)
-        mock_encrypt.assert_called()
-        self.assertIn(b"123456789012test-encrypted123456789012test-encrypted", ret)
+        mock_slice_segment.assert_called_once()
+        self.assertEqual(1, ret_part["PartNumber"])
+        session["s3_client"].generate_presigned_url.assert_awaited()
 
     async def test_s3_upload_encrypted_file_success(self):
         """Test uploading encrypted file of 2 parts"""
         session = self.test_session
         session["s3_client"] = unittest.mock.AsyncMock()
-        opts = {"debug": False}
+        opts = {"debug": False, "verbose": False}
 
         session["s3_client"].create_multipart_upload.return_value = {"UploadId": "123"}
 
-        async def upload_part(**kwargs):
-            return {"ETag": f"\"{kwargs['Body'].getvalue().hex()}\""}
+        parts = [
+            {"PartNumber": 1, "ETag": '"6368756e6b6461746131"'},
+            {"PartNumber": 2, "ETag": '"6368756e6b6461746132"'},
+        ]
+        side_effect_parts = parts.copy()
 
-        session["s3_client"].upload_part.side_effect = upload_part
-
-        async def fake_generator():
-            yield b"chunkdata1"
-            yield b"chunkdata2"
-
-        mock_slice_segment = unittest.mock.Mock(return_value=fake_generator())
-        patch_slice_segment = unittest.mock.patch(
-            "sd_lock_utility.s3_client.encrypt_and_slice_file", mock_slice_segment
+        mock_upload_encrypted_part = unittest.mock.AsyncMock(
+            side_effect=side_effect_parts
+        )
+        patch_upload_encrypted_part = unittest.mock.patch(
+            "sd_lock_utility.s3_client.s3_upload_encrypted_part",
+            mock_upload_encrypted_part,
         )
 
         mock_create_container = unittest.mock.AsyncMock()
@@ -112,19 +104,14 @@ class TestS3Client(tests.mockups.SDLockUtilTestBase):
             "sd_lock_utility.s3_client.s3_create_container", mock_create_container
         )
 
-        with patch_slice_segment, patch_create_container:
+        with patch_upload_encrypted_part, patch_create_container:
             await sd_lock_utility.s3_client.s3_upload_encrypted_file(
-                opts, session, {"path": "test/path"}, None
+                opts, session, {"path": "test/path"}, 536870912, None
             )
-
-        parts = [
-            {"PartNumber": 1, "ETag": '"6368756e6b6461746131"'},
-            {"PartNumber": 2, "ETag": '"6368756e6b6461746132"'},
-        ]
 
         mock_create_container.assert_awaited_once_with(session, opts)
         session["s3_client"].create_multipart_upload.assert_awaited_once()
-        session["s3_client"].upload_part.assert_awaited()
+        mock_upload_encrypted_part.assert_awaited()
         session["s3_client"].complete_multipart_upload.assert_awaited_once_with(
             Bucket=session["container"],
             Key="test/path.c4gh",
