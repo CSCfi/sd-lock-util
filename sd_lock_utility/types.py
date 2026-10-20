@@ -218,3 +218,9 @@ class HeaderList(typing.TypedDict):
         str  # the openstack project name / MyCSC id of the project that owns the bucket
     )
     headers: list[HeaderListItem]
+
+
+class LockUtilChecksum(typing.TypedDict):
+    """Type definition for the lock util checksum."""
+
+    md5: str

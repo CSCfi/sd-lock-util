@@ -10,6 +10,7 @@ import typing
 import aioboto3
 import aiohttp
 import aiohttp.client_exceptions
+import botocore.config
 import click
 import crypt4gh.header
 import nacl.bindings
@@ -60,6 +61,7 @@ async def process_file_lock(
             opts,
             session,
             enfile,
+            size,
             bar,
         )
 
@@ -356,6 +358,10 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
                     endpoint_url=session["s3_endpoint_url"],
                     aws_access_key_id=session["ec2_access_key"],
                     aws_secret_access_key=session["ec2_secret_key"],
+                    config=botocore.config.Config(
+                        signature_version="s3v4",
+                        s3={"addressing_style": "virtual"},
+                    ),
                 ) as s3:
                     session["s3_client"] = s3
                     ret = await lock(opts, session)
