@@ -147,18 +147,6 @@ async def s3_upload_encrypted_part(
         }
 
 
-def get_last_segment_size(
-    size: int,
-) -> int:
-    """Calculate the size of the last segment."""
-    last_ciphertext_size = size % (C4GH_CIPHERTEXT_SIZE * CHUNKS_PER_PART)
-    last_chunk_size = last_ciphertext_size // C4GH_CIPHERTEXT_SIZE * C4GH_CHUNK_SIZE
-    if last_ciphertext_size % C4GH_CIPHERTEXT_SIZE > 0:
-        last_chunk_size += last_ciphertext_size % C4GH_CIPHERTEXT_SIZE + 12 + 16
-
-    return last_chunk_size
-
-
 async def s3_upload_encrypted_file(
     opts: sd_lock_utility.types.SDLockOptions,
     session: sd_lock_utility.types.SDAPISession,
@@ -184,16 +172,21 @@ async def s3_upload_encrypted_file(
 
         total_parts = -(-size // (CHUNKS_PER_PART * C4GH_CIPHERTEXT_SIZE))
         for order_number in range(0, total_parts):
+            content_length = C4GH_CHUNK_SIZE * CHUNKS_PER_PART
+
+            # Handle the last segment edge case
+            if order_number == total_parts - 1:
+                remaining = size - order_number * (C4GH_CIPHERTEXT_SIZE * CHUNKS_PER_PART)
+                content_length = remaining // C4GH_CIPHERTEXT_SIZE * C4GH_CHUNK_SIZE
+                if remaining % C4GH_CIPHERTEXT_SIZE > 0:
+                    content_length += remaining % C4GH_CIPHERTEXT_SIZE + 12 + 16
+
             new_part: CompletedPartTypeDef = await s3_upload_encrypted_part(
                 opts,
                 session,
                 key,
                 order_number,
-                (
-                    C4GH_CHUNK_SIZE * CHUNKS_PER_PART
-                    if order_number < total_parts - 1
-                    else get_last_segment_size(size)
-                ),
+                content_length,
                 file,
                 upload_id,
                 bar,
