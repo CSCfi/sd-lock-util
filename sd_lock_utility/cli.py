@@ -53,7 +53,7 @@ import sd_lock_utility.unlock
 @click.option(
     "--swift",
     is_flag=True,
-    help="Use swift instead of s3.",
+    help="DEPRECATED: Use swift instead of s3.",
 )
 @click.option("--ec2-key", default="", help="EC2 key.")
 @click.option("--ec2-secret", default="", help="EC2 secret.")
@@ -338,7 +338,7 @@ def check_id(
 @click.option(
     "--swift",
     is_flag=True,
-    help="Use swift instead of s3.",
+    help="DEPRECATED: Use swift instead of s3.",
 )
 @click.option("--ec2-key", default="", help="EC2 key.")
 @click.option("--ec2-secret", default="", help="EC2 secret.")
