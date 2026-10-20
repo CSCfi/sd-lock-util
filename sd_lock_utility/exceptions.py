@@ -25,6 +25,10 @@ class NoContainer(Exception):
     """No container was provided."""
 
 
+class NoSegmentsContainer(Exception):
+    """No segments container was available for a forced shared upload."""
+
+
 class NoDestinationBucket(Exception):
     """No destination bucket was provided."""
 

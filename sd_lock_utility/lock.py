@@ -9,6 +9,7 @@ import typing
 
 import aioboto3
 import aiohttp
+import aiohttp.client_exceptions
 import click
 import crypt4gh.header
 import nacl.bindings
@@ -70,14 +71,19 @@ async def process_file_lock(
             opts, f"Uploading the file in {total_segments} segments"
         )
         for object_segment in range(0, total_segments):
-            await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
-                opts,
-                session,
-                enfile,
-                object_segment,
-                segments_uuid,
-                bar,
-            )
+            try:
+                await sd_lock_utility.os_client.openstack_upload_encrypted_segment(
+                    opts,
+                    session,
+                    enfile,
+                    object_segment,
+                    segments_uuid,
+                    bar,
+                )
+            except aiohttp.client_exceptions.ClientResponseError as e:
+                if e.status == 404:
+                    # Couldn't find the segments bucket
+                    raise sd_lock_utility.exceptions.NoSegmentsContainer
 
         sd_lock_utility.common.conditional_echo_debug(
             opts, f"Generating a DLO manifest for {enfile['path']}.c4gh"
@@ -396,6 +402,15 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
     except sd_lock_utility.exceptions.ContainerCreationFailed:
         click.echo("Could not create container/bucket for upload.", err=True)
         return 9
+    except sd_lock_utility.exceptions.NoSegmentsContainer:
+        click.echo(
+            "Forced shared upload using swift, but no segments bucket exists.", err=True
+        )
+        click.echo(
+            "Swift uploads are deprecated, try uploading in s3 mode (i.e. without --swift)",
+            err=True,
+        )
+        return 10
     except aiohttp.ClientResponseError as cex:
         if cex.status == 401 and not opts["debug"]:
             click.echo("Authentication was not successful.", err=True)
