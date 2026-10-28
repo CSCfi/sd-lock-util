@@ -7,6 +7,10 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- use new runners in CI pipelines (#32)
+
 ## [2026.10.6] - 2026-10-20
 
 ### Changed
