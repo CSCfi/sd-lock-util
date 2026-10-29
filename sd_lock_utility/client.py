@@ -258,7 +258,7 @@ async def signed_fetch(
     async with session["client"].request(  # type: ignore
         method=method,
         url=url,
-        params=signature,
+        params=signature,  # type: ignore[arg-type]
         json=json_data,
         data=data,
         timeout=aiohttp.client.ClientTimeout(total=timeout),
