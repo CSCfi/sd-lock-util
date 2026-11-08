@@ -1,8 +1,8 @@
 aiohttp==3.9.5
-click==8.3.3
-crypt4gh==1.6
+click==8.5.0
+crypt4gh==1.8.6
 aiofiles==23.2.1
-aioboto3==13.1.1
-types-aiobotocore-s3==2.25.0
-asyncstdlib==3.13.1
-certifi==2026.10.18
+aioboto3==13.4.0
+types-aiobotocore-s3==2.26.0
+asyncstdlib==3.14.0
+certifi==2026.10.23
