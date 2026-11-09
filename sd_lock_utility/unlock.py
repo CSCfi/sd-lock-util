@@ -7,6 +7,7 @@ import typing
 
 import aioboto3
 import aiohttp
+import botocore.config
 import click
 import crypt4gh.header
 import crypt4gh.lib
@@ -339,7 +340,10 @@ async def wrap_unlock_exceptions(opts: sd_lock_utility.types.SDUnlockOptions) ->
                     endpoint_url=session["s3_endpoint_url"],
                     aws_access_key_id=session["ec2_access_key"],
                     aws_secret_access_key=session["ec2_secret_key"],
-                    # region_name="REGION",
+                    config=botocore.config.Config(
+                        request_checksum_calculation="when_required",
+                        response_checksum_validation="when_required",
+                    ),
                 ) as s3:
                     session["s3_client"] = s3
                     ret = await unlock(opts, session)
