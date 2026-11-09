@@ -30,6 +30,7 @@ dependencies = [
     "aioboto3==13.4.0",
     "types-aiobotocore-s3==2.26.0",
     "asyncstdlib==3.14.0",
+    "pynacl==1.6.2",
 ]
 
 [project.optional-dependencies]

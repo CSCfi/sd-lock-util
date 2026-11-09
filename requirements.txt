@@ -6,3 +6,4 @@ aioboto3==13.4.0
 types-aiobotocore-s3==2.26.0
 asyncstdlib==3.14.0
 certifi==2026.10.23
+pynacl==1.6.2
