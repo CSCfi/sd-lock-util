@@ -22,12 +22,12 @@ classifiers = [
     "Topic :: Communications :: File Sharing",
 ]
 dependencies = [
-    "aiohttp==3.14.4",
+    "aiohttp==3.14.5",
     "click==8.5.0",
     "crypt4gh==1.8.6",
     "certifi==2026.10.23",
     "aiofiles==23.2.1",
-    "aioboto3==13.4.0",
+    "aioboto3==15.5.0",
     "types-aiobotocore-s3==2.26.0",
     "asyncstdlib==3.14.0",
     "pynacl==1.6.2",
