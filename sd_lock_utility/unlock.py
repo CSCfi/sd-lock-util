@@ -190,7 +190,7 @@ async def unlock(
                 to_add: sd_lock_utility.types.SDUtilFile = {
                     "path": path.with_name(path.stem),
                     "localpath": path.with_name(path.stem).relative_to(opts["prefix"]),
-                    "session_key": session_keys[0],
+                    "session_key": bytes(session_keys[0]),
                 }
 
                 sd_lock_utility.common.conditional_echo_debug(
