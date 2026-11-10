@@ -32,19 +32,23 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-latest, windows-latest]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             artifact_name: sd-lock-util
-            os_suffix: linux-amd64
+            os_suffix: linux-x64
+            asset_name: sd-lock-util
+          - os: ubuntu-24.04-arm
+            artifact_name: sd-lock-util
+            os_suffix: linux-arm64
             asset_name: sd-lock-util
           - os: windows-latest
             artifact_name: sd-lock-util.exe
-            os_suffix: windows-amd64
+            os_suffix: windows-x64
             asset_name: sd-lock-util
           - os: macos-latest
             artifact_name: sd-lock-util
-            os_suffix: macos-amd64
+            os_suffix: macos-arm64
             asset_name: sd-lock-util
         python-version: ["3.12"]
 
@@ -58,7 +62,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04' || matrix.os == 'ubuntu-24.04-arm'
         run: sudo apt-get install python3-dev -y
       - name: Install Windows dependencies
         if: matrix.os == 'windows-latest'
@@ -75,13 +79,13 @@ jobs:
           pip install pyinstaller
           pip install pyinstaller-versionfile
       - name: Build sd-lock-util artifact Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04' || matrix.os == 'ubuntu-24.04-arm'
         run: |
-          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --hidden-import=_cffi_backend --collect-all sd_connect_s3_migrate_cli --collect-all aioboto3 --collect-all aiobotocore --collect-submodules boto3 --collect-submodules botocore
+          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --hidden-import=_cffi_backend --collect-all sd_lock_utility --collect-all aioboto3 --collect-all aiobotocore --collect-submodules boto3 --collect-submodules botocore
       - name: Build sd-lock-util artifact macOS
         if: matrix.os == 'macOS-latest'
         run: |
-          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --hidden-import=_cffi_backend --collect-all sd_connect_s3_migrate_cli --collect-all aioboto3 --collect-all aiobotocore --collect-submodules boto3 --collect-submodules botocore
+          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --hidden-import=_cffi_backend --collect-all sd_lock_utility --collect-all aioboto3 --collect-all aiobotocore --collect-submodules boto3 --collect-submodules botocore
       - name: Build sd-lock-util artifact windows
         if: matrix.os == 'windows-latest'
         shell: bash
@@ -89,7 +93,7 @@ jobs:
           TAG=${{ github.ref_name }}
           VERSION=${TAG/.0*./.${TAG:6:1}.} # remove leading zero for windows version
           create-version-file versionfile.yml --outfile file_version_info.txt --version $VERSION
-          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --version-file file_version_info.txt --hidden-import=_cffi_backend --collect-all sd_connect_s3_migrate_cli --collect-all aioboto3 --collect-all aiobotocore --collect-submodules boto3 --collect-submodules botocore
+          pyinstaller --onefile sd_lock_utility/cli.py --name ${{ matrix.asset_name }} --version-file file_version_info.txt --hidden-import=_cffi_backend --collect-all sd_lock_utility --collect-all aioboto3 --collect-all aiobotocore --collect-submodules boto3 --collect-submodules botocore
       - name: Build Asset
         run: |
           cd ./dist
@@ -103,12 +107,21 @@ jobs:
           fail_on_unmatched_files: true
 
   build_legacy_appimage:
-    name: Build legacy image
+    name: Build legacy image (${{ matrix.arch }})
     needs: create_release
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+
+    runs-on: ${{ matrix.runner }}
 
     env:
       ASSET_NAME: sd-lock-util
+      ZIP_NAME: sd-lock-util-python3.12-legacy-linux-${{ matrix.arch }}.zip
 
     defaults:
       run:
@@ -122,10 +135,10 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace almalinux:8 bash .github/build/legacy-builder.sh $ASSET_NAME
           cd ./dist
-          sudo zip --junk-paths ${ASSET_NAME}-python3.12-legacy.zip $ASSET_NAME
+          sudo zip --junk-paths $ZIP_NAME $ASSET_NAME
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ./dist/${{ env.ASSET_NAME }}-python3.12-legacy.zip
+          files: ./dist/${{ env.ZIP_NAME }}
           fail_on_unmatched_files: true
