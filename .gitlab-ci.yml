@@ -23,6 +23,23 @@ python-lint:
     - pre-commit run --all-files -c .pre-commit-config.yaml --show-diff-on-failure --color never
     - tox -re bandit
 
+legacy-build:
+  image: "${ARTIFACTORY_SERVER}/almalinux:8"
+  stage: test
+  tags:
+    - sds-build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    ASSET_NAME: sd-lock-util
+  script:
+    - echo "Building legacy sd-lock-util binary with '.github/build/legacy-builder.sh'"
+    - bash .github/build/legacy-builder.sh "${ASSET_NAME}"
+  artifacts:
+    paths:
+      - dist/${ASSET_NAME}
+    expire_in: 2d
+
 python-test:
   stage: test
   tags:
