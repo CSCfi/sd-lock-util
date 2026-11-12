@@ -8,6 +8,7 @@ import typing
 
 import aioboto3
 import aiohttp
+import botocore.config
 import click
 import crypt4gh.header
 import nacl.public
@@ -398,6 +399,10 @@ async def migrate_bucket_sharing(opts: sd_lock_utility.types.SDHeaderMigrate):
                 endpoint_url=session["s3_endpoint_url"],
                 aws_access_key_id=session["ec2_access_key"],
                 aws_secret_access_key=session["ec2_secret_key"],
+                config=botocore.config.Config(
+                    request_checksum_calculation="when_required",
+                    response_checksum_validation="when_required",
+                ),
             ) as s3:
                 session["s3_client"] = s3
                 await convert_bucket_acl(opts, session)

@@ -361,6 +361,8 @@ async def wrap_lock_exceptions(opts: sd_lock_utility.types.SDLockOptions) -> int
                     config=botocore.config.Config(
                         signature_version="s3v4",
                         s3={"addressing_style": "virtual"},
+                        request_checksum_calculation="when_required",
+                        response_checksum_validation="when_required",
                     ),
                 ) as s3:
                     session["s3_client"] = s3
