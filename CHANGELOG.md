@@ -11,6 +11,15 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 - use new runners in CI pipelines (#32)
 
+### Added
+
+- (users) pipeline now builds additional ARM versions for linux and legacy-linux binaries
+- legacy image builder as a test job in gitlab pipeline
+
+### Fixed
+
+- cosmetic issues in build pipelines
+
 ## [2026.10.6] - 2026-10-20
 
 ### Changed
