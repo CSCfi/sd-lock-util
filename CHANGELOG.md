@@ -7,8 +7,11 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-11-12
+
 ### Changed
 
+- Configure updated version of botocore to calculate checksums only when required
 - use new runners in CI pipelines (#32)
 
 ### Added
@@ -18,6 +21,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ### Fixed
 
+- Fix unlock functionality by enforcing session key type
 - cosmetic issues in build pipelines
 
 ## [2026.10.6] - 2026-10-20
@@ -247,7 +251,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - sd-migrate-headers command can be used to migrate headers between bucket copies
 
 
-[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.6...HEAD
+[Unreleased]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.11.0...HEAD
+[2026.11.0]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.6...2026.11.0
 [2026.10.6]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.5...2026.10.6
 [2026.10.5]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.4...2026.10.5
 [2026.10.4]: https://gitlab.ci.csc.fi/sds-dev/sd-connect/sd-lock-util/compare/2026.10.3...2026.10.4
