@@ -24,7 +24,7 @@ python-lint:
     - tox -re bandit
 
 legacy-build:
-  image: "${ARTIFACTORY_SERVER}/almalinux:8"
+  image: "${ARTIFACTORY_SERVER}/almalinux:8@sha256:2d0f2eb2a83cc09dbc2eb92fade4dbe8f709628149e81aa00aec70630406603b"
   stage: test
   tags:
     - sds-build
