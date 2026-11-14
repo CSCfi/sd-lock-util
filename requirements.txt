@@ -1,5 +1,5 @@
 aiohttp==3.14.5
-click==8.5.0
+click==8.5.1
 crypt4gh==1.8.6
 aiofiles==23.2.1
 aioboto3==15.5.0
