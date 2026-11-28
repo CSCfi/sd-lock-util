@@ -5,5 +5,5 @@ aiofiles==23.2.1
 aioboto3==15.5.0
 types-aiobotocore-s3==2.26.0
 asyncstdlib==3.14.0
-certifi==2026.10.23
+certifi==2026.11.20
 pynacl==1.6.2
